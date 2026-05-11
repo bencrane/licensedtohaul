@@ -1,0 +1,3 @@
+setup:
+  project: hq-licensed-to-haul
+  config: prd
