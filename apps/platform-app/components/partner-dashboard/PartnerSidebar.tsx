@@ -57,7 +57,7 @@ function buildNav(slug: string, awaitingAction: number): NavSection[] {
       label: "Audience",
       items: [
         {
-          label: "Locked spec",
+          label: "Audience specs",
           href: `${base}/spec`,
           icon: <SlidersHorizontal className="h-4 w-4" />,
         },

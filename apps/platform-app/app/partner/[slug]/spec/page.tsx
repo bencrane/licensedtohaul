@@ -26,12 +26,14 @@ export default async function SpecListPage({ params }: Props) {
   if (!slug) notFound();
   const specs = await listSpecsForOrg(slug);
 
+  const isEmpty = specs.length === 0;
+
   return (
     <>
       <PageHeader
-        eyebrow="Audience specs"
-        title="Define who you want, what to exclude, and what you'll pay."
-        description="Each spec captures the criteria, exclusions, budget cap, and price per qualified transfer for one outbound effort. Active specs feed your transfer inbox."
+        eyebrow="Audience"
+        title="Audience specs"
+        description="Criteria, exclusions, budget cap, and price per qualified transfer for each outbound effort. Active specs feed your transfer inbox."
         meta={
           <span className="inline-flex items-center gap-1.5">
             <Sliders className="h-3.5 w-3.5 text-stone-400" />
@@ -39,19 +41,21 @@ export default async function SpecListPage({ params }: Props) {
           </span>
         }
         actions={
-          <Link
-            href={`/partner/${slug}/spec/new`}
-            className="inline-flex items-center gap-2 bg-orange-600 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-orange-700"
-          >
-            <Plus className="h-4 w-4" />
-            New spec
-          </Link>
+          isEmpty ? null : (
+            <Link
+              href={`/partner/${slug}/spec/new`}
+              className="inline-flex items-center gap-2 bg-orange-600 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-orange-700"
+            >
+              <Plus className="h-4 w-4" />
+              New spec
+            </Link>
+          )
         }
       />
 
       <section className="flex-1 bg-background">
         <div className="mx-auto max-w-[1400px] px-6 py-8">
-          {specs.length === 0 ? (
+          {isEmpty ? (
             <EmptyState slug={slug} />
           ) : (
             <ul className="grid gap-3">
@@ -68,21 +72,20 @@ export default async function SpecListPage({ params }: Props) {
 
 function EmptyState({ slug }: { slug: string }) {
   return (
-    <div className="border border-line bg-surface px-8 py-16 text-center">
+    <div className="mx-auto max-w-md border border-line bg-surface px-7 py-10 text-center">
       <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-stone-500">
         No specs yet
       </p>
-      <h2 className="font-display mt-2 text-2xl text-stone-900">
+      <h2 className="font-display mt-1.5 text-xl text-stone-900">
         Compose your first audience spec.
       </h2>
-      <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-stone-600">
+      <p className="mt-2.5 text-sm leading-relaxed text-stone-600">
         Define the carrier criteria you want, anything to exclude, and your
-        budget and price per qualified transfer. You can have multiple specs
-        running in parallel.
+        budget and price per qualified transfer.
       </p>
       <Link
         href={`/partner/${slug}/spec/new`}
-        className="mt-6 inline-flex items-center gap-2 bg-orange-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-orange-700"
+        className="mt-5 inline-flex items-center gap-2 bg-orange-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-orange-700"
       >
         <Plus className="h-4 w-4" />
         Create a spec
