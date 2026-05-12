@@ -7,6 +7,7 @@ import {
   Inbox,
   ListChecks,
   SlidersHorizontal,
+  Sparkles,
   Users,
   FileBarChart,
   UserCog,
@@ -57,6 +58,11 @@ function buildNav(slug: string, awaitingAction: number): NavSection[] {
     {
       label: "Market",
       items: [
+        {
+          label: "Compose",
+          href: `${base}/compose`,
+          icon: <Sparkles className="h-4 w-4" />,
+        },
         {
           label: "Audience specs",
           href: `${base}/spec`,

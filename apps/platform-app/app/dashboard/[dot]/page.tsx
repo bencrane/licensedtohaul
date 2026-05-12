@@ -6,7 +6,7 @@ import HealthRow from "@/components/dashboard/HealthRow";
 import EventFeed from "@/components/dashboard/EventFeed";
 import NextDeadlines from "@/components/dashboard/NextDeadlines";
 import ActionShortcuts from "@/components/dashboard/ActionShortcuts";
-import { getMockDashboard } from "@/lib/mock-dashboard";
+import { getDashboard } from "@/lib/dashboard-fetch";
 
 type Props = {
   params: Promise<{ dot: string }>;
@@ -26,7 +26,7 @@ export default async function DashboardPage({ params }: Props) {
   const cleanDot = dot.replace(/\D/g, "");
   if (!cleanDot || cleanDot.length < 3) notFound();
 
-  const data = getMockDashboard(cleanDot);
+  const data = await getDashboard(cleanDot);
   const recentFeed = data.feed.slice(0, 4);
 
   return (
