@@ -5,8 +5,6 @@ import {
   claimAuthoritySchema,
   deliverSubmission,
 } from "@/lib/submissions";
-import { buildDashboardRecap, sendEmail } from "@/lib/email";
-import { getMockDashboard } from "@/lib/mock-dashboard";
 
 export type ClaimState = {
   ok: boolean;
@@ -45,7 +43,6 @@ export async function submitClaim(
     };
   }
 
-  // 1. Submission goes to whatever webhook is configured (Slack / Zapier / DB).
   await deliverSubmission({
     kind: "claim_authority",
     receivedAt: new Date().toISOString(),
@@ -53,13 +50,9 @@ export async function submitClaim(
     data: parsed.data,
   });
 
-  // 2. Fire the dashboard-recap email. Most carriers will engage with the
-  //    email more often than the web app — design accordingly. Stubbed via
-  //    console + optional webhook until a real provider is wired in.
-  const dashboard = getMockDashboard(parsed.data.dotNumber);
-  const recap = buildDashboardRecap(parsed.data.email, dashboard);
-  await sendEmail(recap);
-
-  // 3. Drop the carrier straight into their dashboard.
-  redirect(`/dashboard/${parsed.data.dotNumber}`);
+  // Hand the carrier off to the platform app to sign in / claim their dashboard.
+  // The dashboard-recap email is platform-side work, wired in a later phase.
+  const platformUrl =
+    process.env.NEXT_PUBLIC_PLATFORM_URL ?? "https://app.licensedtohaul.com";
+  redirect(`${platformUrl}/login?email=${encodeURIComponent(parsed.data.email)}`);
 }
