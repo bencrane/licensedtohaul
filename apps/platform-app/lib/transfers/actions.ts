@@ -21,6 +21,18 @@ async function getOrgIdBySlug(slug: string): Promise<string | null> {
   return rows[0]?.id ?? null;
 }
 
+export async function getTransferById(transferId: string): Promise<TransferRow | null> {
+  const { rows } = await pool().query<TransferRow>(
+    `SELECT id, partner_org_id, carrier_org_id, disposition,
+            match_criteria, signals, contact_snapshot,
+            created_at, contacted_at, quoted_at, closed_at
+       FROM lth.transfers
+      WHERE id = $1`,
+    [transferId],
+  );
+  return rows[0] ?? null;
+}
+
 export async function listTransfersForOrg(slug: string): Promise<TransferRow[]> {
   const orgId = await getOrgIdBySlug(slug);
   if (!orgId) return [];
@@ -34,6 +46,20 @@ export async function listTransfersForOrg(slug: string): Promise<TransferRow[]> 
     [orgId],
   );
   return rows;
+}
+
+/**
+ * Void-returning variant for direct `<form action={...}>` usage. Throws on
+ * invalid disposition (server-side error visible in logs); the page revalidates
+ * so the user sees the current truth either way.
+ */
+export async function setTransferDisposition(
+  slug: string,
+  transferId: string,
+  newDisposition: TransferDisposition,
+): Promise<void> {
+  const result = await updateTransferDisposition(slug, transferId, newDisposition);
+  if (!result.ok) throw new Error(result.error ?? 'Failed to set disposition');
 }
 
 export async function updateTransferDisposition(

@@ -1,8 +1,7 @@
 import { notFound } from "next/navigation";
-import { Download, ListFilter } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
 import TransferInbox from "@/components/partner-dashboard/TransferInbox";
-import { getMockPartner } from "@/lib/mock-partner";
+import { listTransfersForOrg } from "@/lib/transfers/actions";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -16,16 +15,16 @@ export async function generateMetadata({ params }: Props) {
 export default async function TransfersPage({ params }: Props) {
   const { slug } = await params;
   if (!slug) notFound();
-  const data = getMockPartner(slug);
 
-  const newCount = data.transfers.filter((t) => t.disposition === "new").length;
+  const transfers = await listTransfersForOrg(slug);
+  const newCount = transfers.filter((t) => t.disposition === "new").length;
 
   return (
     <>
       <PageHeader
-        eyebrow="Transfer inbox"
-        title="Every transfer in your delivery window."
-        description="Filter by disposition, owner, equipment class, geography. Bulk-disposition and export. Each card shows why the carrier fit your spec and the federal-data signals that triggered the route."
+        eyebrow="Overview"
+        title="Transfer inbox"
+        description="Every carrier your active specs have delivered. Open one to message the carrier and update where it sits in your pipeline."
         meta={
           <>
             <span className="inline-flex items-center gap-1.5">
@@ -36,27 +35,15 @@ export default async function TransfersPage({ params }: Props) {
               {newCount} awaiting first contact
             </span>
             <span className="inline-flex items-center gap-1.5">
-              {data.transfers.length} transfers received · target {data.agreement.transferTarget}
+              {transfers.length} transfers in window
             </span>
-          </>
-        }
-        actions={
-          <>
-            <button className="inline-flex items-center gap-2 border border-line-strong bg-white px-3 py-2 text-sm font-medium text-stone-800 transition-colors hover:border-orange-400 hover:text-orange-700">
-              <ListFilter className="h-4 w-4" />
-              Filter
-            </button>
-            <button className="inline-flex items-center gap-2 border border-line-strong bg-white px-3 py-2 text-sm font-medium text-stone-800 transition-colors hover:border-orange-400 hover:text-orange-700">
-              <Download className="h-4 w-4" />
-              Export CSV
-            </button>
           </>
         }
       />
 
       <section className="flex-1 bg-background">
         <div className="mx-auto max-w-[1400px] px-6 py-8">
-          <TransferInbox transfers={data.transfers} />
+          <TransferInbox slug={slug} transfers={transfers} />
         </div>
       </section>
     </>
