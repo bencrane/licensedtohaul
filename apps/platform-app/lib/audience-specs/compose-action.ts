@@ -1,6 +1,5 @@
 'use server';
 
-import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { pool } from './db';
 import {
@@ -12,17 +11,18 @@ import {
 type ComposePayload = {
   name: string;
   criteria: Criteria;
-  monthly_transfer_target: number;
+  transfer_count_target: number;
+  fulfillment_window_days: number;
   price_per_transfer_cents: number;
 };
 
 /**
- * Lock-in path for the composer. Takes a structured payload (not FormData),
- * writes a draft spec, returns the new spec id so the client can navigate.
- *
- * The composer expresses budget as monthly volume × price. We store
- *   budget_cap_cents = monthly_target × price_per_transfer_cents
- * for compatibility with the existing schema.
+ * Lock-in path for the composer. Writes the agreed deal as an active spec:
+ *   - criteria + exclusions JSONB
+ *   - transfer_count_target (how many we owe)
+ *   - fulfillment_window_days (how long to deliver)
+ *   - price_per_transfer_cents (the indexed rate, set by the platform)
+ *   - budget_cap_cents derived: target × price
  */
 export async function composeAndLockSpec(
   slug: string,
@@ -40,7 +40,6 @@ export async function composeAndLockSpec(
     return { ok: false, error: 'Name is required.' };
   }
 
-  // Validate the criteria JSONB matches our schema.
   let criteria: Criteria;
   try {
     criteria = CriteriaSchema.parse(payload.criteria);
@@ -50,35 +49,27 @@ export async function composeAndLockSpec(
   const exclusions = ExclusionsSchema.parse({});
 
   const budgetCapCents =
-    payload.monthly_transfer_target * payload.price_per_transfer_cents;
+    payload.transfer_count_target * payload.price_per_transfer_cents;
 
   const result = await pool().query<{ id: string }>(
     `INSERT INTO lth.audience_specs
        (partner_org_id, name, criteria, exclusions,
-        budget_cap_cents, price_per_transfer_cents, status)
-     VALUES ($1, $2, $3::jsonb, $4::jsonb, $5, $6, 'active')
+        transfer_count_target, fulfillment_window_days,
+        price_per_transfer_cents, budget_cap_cents, status)
+     VALUES ($1, $2, $3::jsonb, $4::jsonb, $5, $6, $7, $8, 'active')
      RETURNING id`,
     [
       orgId,
       payload.name.trim(),
       JSON.stringify(criteria),
       JSON.stringify(exclusions),
-      budgetCapCents,
+      payload.transfer_count_target,
+      payload.fulfillment_window_days,
       payload.price_per_transfer_cents,
+      budgetCapCents,
     ],
   );
 
   revalidatePath(`/partner/${slug}/spec`);
   return { ok: true, id: result.rows[0].id };
-}
-
-export async function composeAndLockThenRedirect(
-  slug: string,
-  payload: ComposePayload,
-): Promise<void> {
-  const result = await composeAndLockSpec(slug, payload);
-  if (result.ok) {
-    redirect(`/partner/${slug}/spec/${result.id}`);
-  }
-  throw new Error(result.error);
 }

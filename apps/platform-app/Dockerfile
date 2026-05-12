@@ -1,7 +1,8 @@
 # syntax=docker/dockerfile:1.7
 #
-# Standalone Next.js + Doppler container for licensedtohaul.com.
-# Build context = repo root.
+# Standalone Next.js + Doppler container for app.licensedtohaul.com.
+# Build context = repo root (pnpm monorepo); Next.js standalone output lives
+# at apps/platform-app/.next/standalone/.
 
 # ---- deps ----
 FROM node:20-slim AS deps
@@ -9,7 +10,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certifi
     && rm -rf /var/lib/apt/lists/*
 RUN corepack enable && corepack prepare pnpm@9.12.0 --activate
 WORKDIR /app
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/platform-app/package.json ./apps/platform-app/package.json
+COPY apps/marketing-site/package.json ./apps/marketing-site/package.json
 RUN pnpm install --frozen-lockfile
 
 # ---- build ----
@@ -27,11 +30,16 @@ RUN curl -sLf --retry 3 --tlsv1.2 --proto "=https" \
 RUN corepack enable && corepack prepare pnpm@9.12.0 --activate
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/apps/platform-app/node_modules ./apps/platform-app/node_modules
+COPY --from=deps /app/apps/marketing-site/node_modules ./apps/marketing-site/node_modules
 COPY . .
 
 ARG DOPPLER_TOKEN
 ENV DOPPLER_TOKEN=$DOPPLER_TOKEN
-RUN doppler run -- pnpm build
+# Build platform-app explicitly. Doppler injects the build-time env vars
+# (NEXT_PUBLIC_HQX_SUPABASE_URL, NEXT_PUBLIC_HQX_SUPABASE_PUBLISHABLE_KEY,
+# HQX_DB_URL_POOLED, APP_ENV, etc.) that env.ts validates at build time.
+RUN doppler run -- pnpm --filter platform-app build
 
 # ---- runner ----
 FROM node:20-slim AS runner
@@ -51,10 +59,14 @@ ENV NODE_ENV=production \
     PORT=3000 \
     HOSTNAME=0.0.0.0
 
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
-COPY --from=builder /app/public ./public
-COPY docker-entrypoint.sh ./docker-entrypoint.sh
+# Next.js standalone output in a monorepo nests the app at
+# apps/platform-app/.next/standalone/apps/platform-app/server.js — copy
+# the whole standalone tree (which also includes a top-level node_modules
+# with the trimmed transitive deps) into /app.
+COPY --from=builder /app/apps/platform-app/.next/standalone ./
+COPY --from=builder /app/apps/platform-app/.next/static ./apps/platform-app/.next/static
+COPY --from=builder /app/apps/platform-app/public ./apps/platform-app/public
+COPY --from=builder /app/apps/platform-app/docker-entrypoint.sh ./docker-entrypoint.sh
 RUN chmod +x ./docker-entrypoint.sh
 
 RUN useradd --create-home --shell /bin/sh appuser \

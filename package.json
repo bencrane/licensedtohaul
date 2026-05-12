@@ -7,6 +7,8 @@
     "dev:platform": "pnpm --filter platform-app dev",
     "build:marketing": "pnpm --filter marketing-site build",
     "build:platform": "pnpm --filter platform-app build",
+    "build": "pnpm --filter platform-app build",
+    "start": "pnpm --filter platform-app start",
     "lint": "pnpm -r lint"
   },
   "engines": {

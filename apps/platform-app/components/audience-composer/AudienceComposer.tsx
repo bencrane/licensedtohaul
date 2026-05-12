@@ -3,7 +3,6 @@
 import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  Check,
   Truck,
   MapPin,
   Calendar,
@@ -11,10 +10,11 @@ import {
   Sparkles,
   Lock,
   ArrowRight,
+  Info,
 } from 'lucide-react';
 import { composeAndLockSpec } from '@/lib/audience-specs/compose-action';
 
-// ----- constants (mock-realistic) -----
+// ----- constants -----
 
 const STATE_OPTIONS = [
   'TX', 'CA', 'FL', 'IL', 'OH', 'PA', 'GA', 'NC', 'MI', 'NY',
@@ -28,7 +28,8 @@ const EQUIPMENT_OPTIONS = [
   'Auto carrier',
   'Heavy haul',
 ];
-const TOTAL_POOL = 8500; // total active US motor carriers in the system
+const POOL_SIZE = 8500; // total active US motor carriers in the system
+const FULFILLMENT_OPTIONS = [30, 45, 90] as const;
 
 type Criteria = {
   states: string[];
@@ -48,14 +49,12 @@ const DEFAULT_CRITERIA: Criteria = {
   hazmat: 'either',
 };
 
-// ----- live math -----
+// ----- pricing & supply -----
 
 function calcAudienceSize(c: Criteria): number {
-  let size = TOTAL_POOL;
+  let size = POOL_SIZE;
   size *=
-    c.states.length === 0
-      ? 0.05
-      : Math.min(1, c.states.length * 0.045);
+    c.states.length === 0 ? 0.05 : Math.min(1, c.states.length * 0.045);
   size *=
     c.equipment.length === 0
       ? 0.05
@@ -68,27 +67,27 @@ function calcAudienceSize(c: Criteria): number {
   return Math.max(0, Math.round(size));
 }
 
-function calcDaysToFill(audience: number, monthlyTarget: number): number {
-  if (audience <= 0 || monthlyTarget <= 0) return 0;
-  const dailySupply = audience * 0.01; // ~1% of audience matches per day
+/**
+ * Per-transfer rate, indexed to audience scarcity. Smaller audiences are
+ * harder to fill and command a premium. Smooth, monotonic, bounded.
+ */
+function pricePerTransferCents(audience: number, windowDays: number): number {
+  const fraction = Math.min(1, audience / POOL_SIZE);
+  const scarcity = 1 + 1.5 * (1 - fraction);
+  // Shorter windows are "priority" — small premium for express delivery.
+  const windowPremium = windowDays <= 30 ? 1.18 : windowDays <= 45 ? 1.0 : 0.92;
+  return Math.round(150_00 * scarcity * windowPremium);
+}
+
+function calcDaysToFill(audience: number, transferCount: number): number {
+  if (audience <= 0 || transferCount <= 0) return 0;
+  const dailySupply = audience * 0.01;
   if (dailySupply <= 0) return Infinity;
-  return Math.ceil(monthlyTarget / dailySupply);
+  return Math.ceil(transferCount / dailySupply);
 }
 
 function formatUsd(cents: number): string {
-  const dollars = cents / 100;
-  if (dollars >= 1000) {
-    return `$${Math.round(dollars).toLocaleString()}`;
-  }
-  return `$${dollars.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
-}
-
-function suggestPricePerTransfer(audience: number): number {
-  // Sparser audiences command higher prices; tighter is more exclusive.
-  if (audience <= 200) return 350_00;
-  if (audience <= 800) return 250_00;
-  if (audience <= 2000) return 200_00;
-  return 150_00;
+  return `$${Math.round(cents / 100).toLocaleString()}`;
 }
 
 // ----- component -----
@@ -97,25 +96,26 @@ type Props = { slug: string };
 
 export default function AudienceComposer({ slug }: Props) {
   const router = useRouter();
-  const [name, setName] = useState('Active OTR — TX/CA/FL · Dry van');
+  const [name, setName] = useState('Active OTR — TX/CA/FL · Dry van + Reefer');
   const [criteria, setCriteria] = useState<Criteria>(DEFAULT_CRITERIA);
-  const [monthlyTarget, setMonthlyTarget] = useState(50);
-  const [priceDollars, setPriceDollars] = useState(200);
+  const [transferCount, setTransferCount] = useState(50);
+  const [fulfillmentDays, setFulfillmentDays] = useState<number>(45);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
   const audienceSize = useMemo(() => calcAudienceSize(criteria), [criteria]);
-  const dailySupply = useMemo(() => audienceSize * 0.01, [audienceSize]);
+  const priceCents = useMemo(
+    () => pricePerTransferCents(audienceSize, fulfillmentDays),
+    [audienceSize, fulfillmentDays],
+  );
+  const dailySupply = audienceSize * 0.01;
   const daysToFill = useMemo(
-    () => calcDaysToFill(audienceSize, monthlyTarget),
-    [audienceSize, monthlyTarget],
+    () => calcDaysToFill(audienceSize, transferCount),
+    [audienceSize, transferCount],
   );
-  const monthlyBudgetCents = monthlyTarget * priceDollars * 100;
-  const suggested = useMemo(
-    () => suggestPricePerTransfer(audienceSize) / 100,
-    [audienceSize],
-  );
-  const suggestionDelta = priceDollars - suggested;
+  const totalCommitmentCents = transferCount * priceCents;
+  const onTrack = daysToFill <= fulfillmentDays;
+  const capacityInWindow = Math.floor(dailySupply * fulfillmentDays);
 
   const toggleState = (s: string) => {
     setCriteria((c) => ({
@@ -149,8 +149,9 @@ export default function AudienceComposer({ slug }: Props) {
           safety_ratings: ['satisfactory'],
           notes: '',
         },
-        monthly_transfer_target: monthlyTarget,
-        price_per_transfer_cents: priceDollars * 100,
+        transfer_count_target: transferCount,
+        fulfillment_window_days: fulfillmentDays,
+        price_per_transfer_cents: priceCents,
       });
       if (result.ok) {
         router.push(`/partner/${slug}/spec/${result.id}`);
@@ -282,7 +283,9 @@ export default function AudienceComposer({ slug }: Props) {
               className="h-1.5 flex-1 accent-orange-600"
             />
             <span className="font-mono w-16 text-right text-sm text-stone-800">
-              {criteria.authorityYearsMin === 0 ? 'Any' : `${criteria.authorityYearsMin}y+`}
+              {criteria.authorityYearsMin === 0
+                ? 'Any'
+                : `${criteria.authorityYearsMin}y+`}
             </span>
           </div>
         </Section>
@@ -319,7 +322,7 @@ export default function AudienceComposer({ slug }: Props) {
         </Section>
       </div>
 
-      {/* Right — live results + pricing + lock */}
+      {/* Right — live results + order + lock */}
       <div className="lg:sticky lg:top-4 space-y-4 lg:self-start">
         {/* Audience size hero */}
         <div className="border border-line bg-surface p-6">
@@ -336,26 +339,58 @@ export default function AudienceComposer({ slug }: Props) {
             <div
               className="h-full bg-orange-500 transition-[width] duration-300"
               style={{
-                width: `${Math.min(100, (audienceSize / TOTAL_POOL) * 100)}%`,
+                width: `${Math.min(100, (audienceSize / POOL_SIZE) * 100)}%`,
               }}
             />
           </div>
           <p className="mt-1.5 text-[11px] text-stone-500">
-            {((audienceSize / TOTAL_POOL) * 100).toFixed(1)}% of {TOTAL_POOL.toLocaleString()} active US carriers in the system
+            {((audienceSize / POOL_SIZE) * 100).toFixed(1)}% of{' '}
+            {POOL_SIZE.toLocaleString()} active US carriers in the system
           </p>
         </div>
 
-        {/* Volume + price */}
+        {/* Your rate (computed, not editable) */}
+        <div className="border border-line bg-surface p-6">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-stone-500">
+                Your rate
+              </p>
+              <div className="mt-2 flex items-baseline gap-2">
+                <p className="font-display text-4xl text-stone-900">
+                  {formatUsd(priceCents)}
+                </p>
+                <p className="text-sm text-stone-500">per qualified transfer</p>
+              </div>
+            </div>
+            <span
+              className="inline-flex items-center gap-1 border border-line bg-stone-50 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-stone-600"
+              title="Set by audience scarcity"
+            >
+              <Info className="h-3 w-3" />
+              Indexed
+            </span>
+          </div>
+          <p className="mt-3 text-[11px] leading-relaxed text-stone-500">
+            Rate is set by audience scarcity, not by you. Tighter audiences
+            cost more — they&apos;re harder to fill. Widen criteria to lower the
+            rate.
+          </p>
+        </div>
+
+        {/* Order: count + window */}
         <div className="border border-line bg-surface p-6">
           <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-stone-500">
-            Volume &amp; price
+            Order
           </p>
 
           <div className="mt-4">
             <div className="flex items-baseline justify-between">
-              <label className="text-sm text-stone-700">Transfers per month</label>
+              <label className="text-sm text-stone-700">
+                Transfers to deliver
+              </label>
               <span className="font-display text-2xl text-stone-900">
-                {monthlyTarget}
+                {transferCount}
               </span>
             </div>
             <input
@@ -363,8 +398,8 @@ export default function AudienceComposer({ slug }: Props) {
               min={5}
               max={300}
               step={5}
-              value={monthlyTarget}
-              onChange={(e) => setMonthlyTarget(Number(e.target.value))}
+              value={transferCount}
+              onChange={(e) => setTransferCount(Number(e.target.value))}
               className="mt-2 h-1.5 w-full accent-orange-600"
             />
             <div className="mt-1 flex justify-between text-[10px] font-mono uppercase tracking-[0.12em] text-stone-400">
@@ -377,47 +412,40 @@ export default function AudienceComposer({ slug }: Props) {
           </div>
 
           <div className="mt-5">
-            <div className="flex items-baseline justify-between">
-              <label className="text-sm text-stone-700">
-                Price per qualified transfer
-              </label>
-              <span className="font-display text-2xl text-stone-900">
-                ${priceDollars}
-              </span>
+            <p className="text-sm text-stone-700">Fulfillment window</p>
+            <div className="mt-2 grid grid-cols-3 gap-1.5">
+              {FULFILLMENT_OPTIONS.map((d) => {
+                const on = fulfillmentDays === d;
+                return (
+                  <button
+                    key={d}
+                    type="button"
+                    onClick={() => setFulfillmentDays(d)}
+                    className={`px-3 py-2 text-sm font-semibold transition-colors ${
+                      on
+                        ? 'bg-orange-600 text-white'
+                        : 'border border-line bg-white text-stone-700 hover:border-orange-300'
+                    }`}
+                  >
+                    {d} days
+                  </button>
+                );
+              })}
             </div>
-            <input
-              type="range"
-              min={50}
-              max={500}
-              step={10}
-              value={priceDollars}
-              onChange={(e) => setPriceDollars(Number(e.target.value))}
-              className="mt-2 h-1.5 w-full accent-orange-600"
-            />
-            <p className="mt-1.5 text-[11px] text-stone-500">
-              Suggested at this audience size:{' '}
-              <button
-                type="button"
-                onClick={() => setPriceDollars(suggested)}
-                className="font-mono text-orange-700 underline-offset-2 hover:underline"
-              >
-                ${suggested}
-              </button>
-              {Math.abs(suggestionDelta) >= 10 && (
-                <span
-                  className={`ml-2 font-mono ${
-                    suggestionDelta > 0 ? 'text-emerald-700' : 'text-stone-500'
-                  }`}
-                >
-                  ({suggestionDelta > 0 ? '+' : ''}${suggestionDelta})
-                </span>
-              )}
+            <p className="mt-2 text-[11px] leading-relaxed text-stone-500">
+              Days we have to deliver all {transferCount} transfers. If we
+              fall short at expiration, the unfilled portion refunds or rolls
+              forward. Shorter window = small priority premium.
             </p>
           </div>
         </div>
 
         {/* Your deal — summary */}
-        <div className="border border-orange-300 bg-orange-50/30 p-6">
+        <div
+          className={`border p-6 ${
+            onTrack ? 'border-orange-300 bg-orange-50/30' : 'border-amber-300 bg-amber-50/50'
+          }`}
+        >
           <div className="flex items-start gap-2">
             <Sparkles className="mt-0.5 h-4 w-4 flex-none text-orange-600" />
             <div className="min-w-0 flex-1">
@@ -425,21 +453,22 @@ export default function AudienceComposer({ slug }: Props) {
                 Your deal
               </p>
               <p className="font-display mt-1 text-2xl leading-tight text-stone-900">
-                {monthlyTarget} qualified transfers/month at ${priceDollars} each.
+                {transferCount} qualified transfers at {formatUsd(priceCents)}{' '}
+                each. Delivered in {fulfillmentDays} days or we refund.
               </p>
 
               <div className="mt-5 grid grid-cols-2 gap-4">
                 <div>
                   <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-stone-500">
-                    Monthly spend
+                    Total commitment
                   </p>
                   <p className="font-display mt-1 text-xl text-stone-900">
-                    {formatUsd(monthlyBudgetCents)}
+                    {formatUsd(totalCommitmentCents)}
                   </p>
                 </div>
                 <div>
                   <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-stone-500">
-                    Time to fill
+                    Estimated delivery
                   </p>
                   <p className="font-display mt-1 text-xl text-stone-900">
                     {daysToFill === Infinity || daysToFill > 365
@@ -449,10 +478,10 @@ export default function AudienceComposer({ slug }: Props) {
                 </div>
                 <div>
                   <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-stone-500">
-                    Audience pool
+                    Window capacity
                   </p>
                   <p className="font-display mt-1 text-xl text-stone-900">
-                    {audienceSize.toLocaleString()}
+                    ~{capacityInWindow.toLocaleString()}
                   </p>
                 </div>
                 <div>
@@ -465,11 +494,19 @@ export default function AudienceComposer({ slug }: Props) {
                 </div>
               </div>
 
-              {daysToFill > 30 && monthlyTarget > dailySupply * 30 && (
-                <p className="mt-4 border-l-2 border-amber-400 bg-amber-50/60 px-3 py-2 text-[12px] leading-relaxed text-amber-900">
-                  Your volume exceeds the audience&apos;s supply. Either widen
-                  criteria, accept a longer fill window, or raise price to
-                  bias matching toward your spec.
+              {!onTrack && (
+                <p className="mt-4 border-l-2 border-amber-500 bg-amber-100/60 px-3 py-2 text-[12px] leading-relaxed text-amber-900">
+                  Your audience supplies roughly{' '}
+                  <strong>{capacityInWindow.toLocaleString()}</strong>{' '}
+                  qualified carriers in {fulfillmentDays} days, but you&apos;ve
+                  ordered <strong>{transferCount}</strong>. Either widen
+                  criteria, lower the count, or pick a longer window.
+                </p>
+              )}
+
+              {onTrack && (
+                <p className="mt-4 inline-flex items-center gap-1.5 text-[12px] font-semibold text-emerald-700">
+                  ✓ On track to deliver within {fulfillmentDays} days
                 </p>
               )}
             </div>
@@ -497,7 +534,9 @@ export default function AudienceComposer({ slug }: Props) {
             className="group mt-4 inline-flex w-full items-center justify-center gap-2 bg-orange-600 px-5 py-3 text-sm font-semibold uppercase tracking-[0.08em] text-white transition-colors hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Lock className="h-4 w-4" />
-            {pending ? 'Locking in…' : 'Lock in this audience'}
+            {pending
+              ? 'Locking in…'
+              : `Lock in ${transferCount} transfers · ${formatUsd(totalCommitmentCents)}`}
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
           </button>
 
@@ -511,9 +550,8 @@ export default function AudienceComposer({ slug }: Props) {
           )}
 
           <p className="mt-3 text-[11px] leading-relaxed text-stone-500">
-            Locks in the criteria, monthly target, and price as an active spec.
-            Active specs feed your Transfer inbox. You can pause or adjust any
-            spec later.
+            Locks in your criteria, transfer count, fulfillment window, and
+            rate. Active spec starts feeding your Transfer inbox immediately.
           </p>
         </div>
       </div>
