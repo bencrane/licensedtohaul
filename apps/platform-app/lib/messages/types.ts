@@ -19,3 +19,15 @@ export type MessageThread = {
 export type SendMessageState = {
   error: string | null;
 };
+
+export type ThreadPreview = {
+  transfer_id: string;
+  carrier_name: string;
+  carrier_usdot: number;
+  carrier_domicile: string;
+  disposition: string;
+  last_body: string;
+  last_at: string;
+  last_sender: SenderSide;
+  unread_count: number;
+};
