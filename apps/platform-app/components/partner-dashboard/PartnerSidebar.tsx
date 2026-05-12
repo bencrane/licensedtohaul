@@ -8,9 +8,11 @@ import {
   ListChecks,
   SlidersHorizontal,
   Sparkles,
+  LayoutGrid,
   Users,
   FileBarChart,
   UserCog,
+  Settings2,
   Wallet,
   ChevronDown,
   LogOut,
@@ -59,6 +61,11 @@ function buildNav(slug: string, awaitingAction: number): NavSection[] {
       label: "Market",
       items: [
         {
+          label: "Catalog",
+          href: `${base}/catalog`,
+          icon: <LayoutGrid className="h-4 w-4" />,
+        },
+        {
           label: "Compose",
           href: `${base}/compose`,
           icon: <Sparkles className="h-4 w-4" />,
@@ -87,6 +94,11 @@ function buildNav(slug: string, awaitingAction: number): NavSection[] {
           label: "Team",
           href: `${base}/team`,
           icon: <UserCog className="h-4 w-4" />,
+        },
+        {
+          label: "Defaults",
+          href: `${base}/defaults`,
+          icon: <Settings2 className="h-4 w-4" />,
         },
         {
           label: "Billing & agreement",

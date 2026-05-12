@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import PageHeader from "@/components/dashboard/PageHeader";
-import AudienceComposer from "@/components/audience-composer/AudienceComposer";
+import DefaultsForm from "@/components/partner-defaults/DefaultsForm";
 import { loadDefaultsForOrg } from "@/lib/partner-defaults/actions";
 
 type Props = {
@@ -9,10 +9,10 @@ type Props = {
 
 export async function generateMetadata({ params }: Props) {
   const { slug } = await params;
-  return { title: `Compose audience · ${slug} — Licensed to Haul` };
+  return { title: `Defaults · ${slug} — Licensed to Haul` };
 }
 
-export default async function ComposePage({ params }: Props) {
+export default async function DefaultsPage({ params }: Props) {
   const { slug } = await params;
   if (!slug) notFound();
   const defaults = await loadDefaultsForOrg(slug);
@@ -20,14 +20,14 @@ export default async function ComposePage({ params }: Props) {
   return (
     <>
       <PageHeader
-        eyebrow="Market"
-        title="Compose audience"
-        description="Pick who you want, set your volume and fulfillment window, watch the deal shape in real time. Your account defaults are inherited automatically."
+        eyebrow="Account"
+        title="Defaults"
+        description="Set once. Inherited by every audience you compose. Hard exclusions, floors, hazmat preference, default fulfillment window — the global stuff that rarely changes."
       />
 
       <section className="flex-1 bg-background">
-        <div className="mx-auto max-w-[1400px] px-6 py-8">
-          <AudienceComposer slug={slug} defaults={defaults} />
+        <div className="mx-auto max-w-[1200px] px-6 py-8">
+          <DefaultsForm slug={slug} initial={defaults} />
         </div>
       </section>
     </>
