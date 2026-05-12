@@ -1,32 +1,16 @@
 {
-  "name": "licensed-to-haul",
-  "version": "0.1.0",
+  "name": "licensedtohaul",
+  "version": "0.0.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
-  },
-  "dependencies": {
-    "framer-motion": "^12.38.0",
-    "lucide-react": "^0.469.0",
-    "next": "15.5.15",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "zod": "^3.23.8"
-  },
-  "devDependencies": {
-    "@tailwindcss/postcss": "^4.0.0-beta.5",
-    "@types/node": "^22.9.0",
-    "@types/react": "^19.0.0",
-    "@types/react-dom": "^19.0.0",
-    "eslint": "^9.14.0",
-    "eslint-config-next": "15.5.15",
-    "tailwindcss": "^4.0.0-beta.5",
-    "typescript": "^5.6.3"
+    "dev:marketing": "pnpm --filter marketing-site dev",
+    "dev:platform": "pnpm --filter platform-app dev",
+    "build:marketing": "pnpm --filter marketing-site build",
+    "build:platform": "pnpm --filter platform-app build",
+    "lint": "pnpm -r lint"
   },
   "engines": {
     "node": ">=20"
-  }
+  },
+  "packageManager": "pnpm@9.12.0"
 }
