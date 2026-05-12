@@ -62,7 +62,7 @@ function buildNav(slug: string, awaitingAction: number): NavSection[] {
           icon: <SlidersHorizontal className="h-4 w-4" />,
         },
         {
-          label: "Audience browser",
+          label: "Audience shape",
           href: `${base}/audience`,
           icon: <Users className="h-4 w-4" />,
         },
