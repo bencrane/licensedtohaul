@@ -34,9 +34,10 @@ function buildNav(slug: string, awaitingAction: number): NavSection[] {
   const base = `/partner/${slug}`;
   return [
     {
+      label: "Overview",
       items: [
         {
-          label: "Overview",
+          label: "Summary",
           href: base,
           icon: <LayoutDashboard className="h-4 w-4" />,
         },
@@ -54,7 +55,7 @@ function buildNav(slug: string, awaitingAction: number): NavSection[] {
       ],
     },
     {
-      label: "Audience",
+      label: "Market",
       items: [
         {
           label: "Audience specs",
