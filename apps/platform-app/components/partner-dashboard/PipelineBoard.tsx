@@ -143,6 +143,8 @@ export default function PipelineBoard({ slug, initialTransfers }: Props) {
                       <Truck className="h-3 w-3 text-stone-400" />
                       {c.contact_snapshot.equipment_class} ·{' '}
                       {c.contact_snapshot.power_units} PU
+                      {c.contact_snapshot.drivers != null &&
+                        ` · ${c.contact_snapshot.drivers} drv`}
                     </p>
                     <p className="mt-1 inline-flex items-center gap-1 text-stone-500">
                       <MapPin className="h-3 w-3 text-stone-400" />
@@ -152,6 +154,11 @@ export default function PipelineBoard({ slug, initialTransfers }: Props) {
                       <span className="font-mono uppercase tracking-[0.12em]">
                         {relativeTime(c.created_at)}
                       </span>
+                      {c.contact_snapshot.hazmat && (
+                        <span className="inline-flex items-center border border-orange-200 bg-orange-50 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.1em] text-orange-800">
+                          Hazmat
+                        </span>
+                      )}
                     </div>
                   </li>
                 ))}

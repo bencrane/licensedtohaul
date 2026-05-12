@@ -40,6 +40,17 @@ function relativeTime(iso: string): string {
   return "just now";
 }
 
+function SignalCell({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="border border-line bg-stone-50 px-2.5 py-2">
+      <p className="text-[10px] uppercase tracking-[0.1em] text-stone-500">
+        {label}
+      </p>
+      <p className="mt-0.5 font-mono text-[13px] text-stone-800">{value}</p>
+    </div>
+  );
+}
+
 function TransferCard({ slug, row }: { slug: string; row: TransferRow }) {
   const disp = DISPOSITION_STYLES[row.disposition];
   const cs = row.contact_snapshot;
@@ -78,6 +89,9 @@ function TransferCard({ slug, row }: { slug: string; row: TransferRow }) {
             <h3 className="font-display mt-4 text-xl leading-tight text-stone-900">
               {cs.name}
             </h3>
+            {cs.dba && (
+              <p className="mt-0.5 text-xs text-stone-500">DBA {cs.dba}</p>
+            )}
 
             <dl className="mt-4 space-y-1.5 text-xs">
               <div className="flex items-center justify-between">
@@ -93,7 +107,10 @@ function TransferCard({ slug, row }: { slug: string; row: TransferRow }) {
               </div>
               <div className="flex items-center justify-between">
                 <dt className="text-stone-500">Fleet</dt>
-                <dd className="text-stone-800">{cs.power_units} PU</dd>
+                <dd className="text-stone-800">
+                  {cs.power_units} PU
+                  {cs.drivers != null && ` · ${cs.drivers} drv`}
+                </dd>
               </div>
               <div className="flex items-center justify-between">
                 <dt className="text-stone-500">Equipment</dt>
@@ -102,10 +119,16 @@ function TransferCard({ slug, row }: { slug: string; row: TransferRow }) {
                   {cs.equipment_class}
                 </dd>
               </div>
+              {cs.hazmat && (
+                <div className="flex items-center justify-between">
+                  <dt className="text-stone-500">Hazmat</dt>
+                  <dd className="font-semibold text-orange-800">Endorsed</dd>
+                </div>
+              )}
             </dl>
           </div>
 
-          {/* Middle: why it fits */}
+          {/* Middle: why it fits + signals */}
           <div className="bg-surface p-5 md:col-span-6">
             <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
               Why this carrier fits your spec
@@ -121,6 +144,25 @@ function TransferCard({ slug, row }: { slug: string; row: TransferRow }) {
                 </li>
               ))}
             </ul>
+
+            {row.signals && Object.keys(row.signals).length > 0 && (
+              <>
+                <p className="mt-5 text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+                  Federal-data signals
+                </p>
+                <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
+                  {row.signals.authority_age_years != null && (
+                    <SignalCell label="Authority age" value={`${row.signals.authority_age_years}y`} />
+                  )}
+                  {row.signals.csa_basic && (
+                    <SignalCell label="CSA basic" value={String(row.signals.csa_basic)} />
+                  )}
+                  {row.signals.oos_rate && (
+                    <SignalCell label="OOS rate" value={String(row.signals.oos_rate)} />
+                  )}
+                </div>
+              </>
+            )}
           </div>
 
           {/* Right: open chevron + last-activity timestamps */}
