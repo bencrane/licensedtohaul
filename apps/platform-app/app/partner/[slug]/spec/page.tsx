@@ -1,183 +1,155 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Lock, AlertTriangle, Sliders, History } from "lucide-react";
+import { Plus, Sliders } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
-import { getMockPartner } from "@/lib/mock-partner";
+import { listSpecsForOrg } from "@/lib/audience-specs/actions";
+import type { AudienceSpec, Status } from "@/lib/audience-specs/types";
 
 type Props = {
   params: Promise<{ slug: string }>;
 };
 
+const STATUS_STYLES: Record<Status, string> = {
+  draft: "border-stone-300 bg-stone-100 text-stone-700",
+  active: "border-emerald-200 bg-emerald-50 text-emerald-800",
+  paused: "border-amber-200 bg-amber-50 text-amber-800",
+  archived: "border-stone-200 bg-stone-50 text-stone-500",
+};
+
 export async function generateMetadata({ params }: Props) {
   const { slug } = await params;
-  return { title: `Locked spec · ${slug} — Licensed to Haul` };
+  return { title: `Audience specs · ${slug} — Licensed to Haul` };
 }
 
-export default async function SpecPage({ params }: Props) {
+export default async function SpecListPage({ params }: Props) {
   const { slug } = await params;
   if (!slug) notFound();
-  const data = getMockPartner(slug);
-  const { spec, driftBreakdown } = data;
+  const specs = await listSpecsForOrg(slug);
 
   return (
     <>
       <PageHeader
-        eyebrow="Locked spec"
-        title="The carrier criteria you locked at compose time."
-        description="Your spec is exclusive. No other partner in your vertical works the same locked audience. Adjustments to spec criteria require re-confirmation against your delivery commitment."
+        eyebrow="Audience specs"
+        title="Define who you want, what to exclude, and what you'll pay."
+        description="Each spec captures the criteria, exclusions, budget cap, and price per qualified transfer for one outbound effort. Active specs feed your transfer inbox."
         meta={
-          <>
-            <span className="inline-flex items-center gap-1.5 font-mono">
-              <Lock className="h-3.5 w-3.5 text-stone-400" />
-              Composed {spec.composedAt}
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              Live audience · {spec.audienceSizeNow.toLocaleString()} carriers
-            </span>
-            <span className="inline-flex items-center gap-1.5 text-emerald-700">
-              {spec.audienceDriftNet >= 0 ? "+" : ""}
-              {spec.audienceDriftNet} since lock
-            </span>
-          </>
+          <span className="inline-flex items-center gap-1.5">
+            <Sliders className="h-3.5 w-3.5 text-stone-400" />
+            {specs.length} spec{specs.length === 1 ? "" : "s"}
+          </span>
         }
         actions={
-          <button className="inline-flex items-center gap-2 bg-orange-600 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-orange-700">
-            <Sliders className="h-4 w-4" />
-            Adjust spec
-          </button>
+          <Link
+            href={`/partner/${slug}/spec/new`}
+            className="inline-flex items-center gap-2 bg-orange-600 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-orange-700"
+          >
+            <Plus className="h-4 w-4" />
+            New spec
+          </Link>
         }
       />
 
       <section className="flex-1 bg-background">
-        <div className="mx-auto max-w-[1400px] space-y-10 px-6 py-8">
-          {/* Spec criteria */}
-          <div>
-            <div className="mb-4 flex items-end justify-between">
-              <h2 className="font-display text-2xl text-stone-900">Criteria</h2>
-              <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-stone-500">
-                {spec.criteria.length} active filters
-              </span>
-            </div>
-            <ul className="grid gap-px border border-line bg-line md:grid-cols-2 lg:grid-cols-3">
-              {spec.criteria.map((c) => (
-                <li key={c.label} className="bg-surface p-5">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-500">
-                    {c.label}
-                  </p>
-                  <p className="font-display mt-2 text-base text-stone-900">
-                    {c.value}
-                  </p>
-                </li>
+        <div className="mx-auto max-w-[1400px] px-6 py-8">
+          {specs.length === 0 ? (
+            <EmptyState slug={slug} />
+          ) : (
+            <ul className="grid gap-3">
+              {specs.map((s) => (
+                <SpecRow key={s.id} slug={slug} spec={s} />
               ))}
             </ul>
-          </div>
-
-          {/* Audience size + drift */}
-          <div className="grid gap-8 md:grid-cols-12">
-            <div className="md:col-span-7">
-              <div className="border border-line bg-surface p-6">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-500">
-                  Live audience size
-                </p>
-                <div className="mt-3 flex items-baseline gap-3">
-                  <p className="font-display text-5xl text-stone-900">
-                    {spec.audienceSizeNow.toLocaleString()}
-                  </p>
-                  <span className="font-mono text-sm text-emerald-700">
-                    {spec.audienceDriftNet >= 0 ? "+" : ""}
-                    {spec.audienceDriftNet}
-                  </span>
-                </div>
-                <p className="mt-1 text-sm text-stone-500">
-                  carriers in your locked audience right now (started at{" "}
-                  {spec.audienceSizeAtCompose.toLocaleString()} at compose)
-                </p>
-
-                <div className="mt-6 border-t border-line pt-5">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-500">
-                    Drift breakdown
-                  </p>
-                  <ul className="mt-3 space-y-2">
-                    {driftBreakdown.map((d) => (
-                      <li
-                        key={d.id}
-                        className="flex items-start justify-between gap-3 border-b border-line pb-2 last:border-b-0"
-                      >
-                        <div>
-                          <p className="text-sm text-stone-800">{d.label}</p>
-                          <p className="text-xs text-stone-500">{d.reason}</p>
-                        </div>
-                        <span
-                          className={`font-mono text-sm ${d.delta >= 0 ? "text-emerald-700" : "text-red-700"}`}
-                        >
-                          {d.delta >= 0 ? "+" : ""}
-                          {d.delta}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            </div>
-
-            <div className="md:col-span-5">
-              <div className="border border-amber-200 bg-amber-50/60 p-6">
-                <div className="flex items-start gap-3">
-                  <span className="inline-flex h-8 w-8 flex-none items-center justify-center bg-amber-100 text-amber-700">
-                    <AlertTriangle className="h-4 w-4" />
-                  </span>
-                  <div>
-                    <h3 className="font-display text-lg text-stone-900">
-                      Adjustments impact your contract
-                    </h3>
-                    <p className="mt-2 text-sm leading-relaxed text-stone-700">
-                      Spec criteria changes shift your locked audience. If the
-                      adjusted audience differs by more than 10% from the
-                      original lock, the change triggers a contract amendment
-                      to keep your committed transfer count and refund-or-rollover
-                      SLA aligned.
-                    </p>
-                    <p className="mt-4 text-xs text-stone-600">
-                      Direct line to the engineering team for spec questions:{" "}
-                      <a className="font-medium text-orange-700 hover:text-orange-800" href="mailto:partners@licensedtohaul.com">
-                        partners@licensedtohaul.com
-                      </a>
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* History */}
-          <div>
-            <div className="mb-4 flex items-end justify-between">
-              <h2 className="font-display text-2xl text-stone-900">Spec history</h2>
-              <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-stone-500">
-                1 entry
-              </span>
-            </div>
-            <ul className="border border-line bg-surface">
-              <li className="grid grid-cols-12 items-center gap-3 px-5 py-4">
-                <span className="col-span-2 inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-stone-500">
-                  <History className="h-3 w-3" />
-                  Composed
-                </span>
-                <span className="col-span-4 text-sm text-stone-800">
-                  {spec.composedAt}
-                </span>
-                <span className="col-span-4 text-sm text-stone-700">
-                  Initial spec lock · 8 criteria · {spec.audienceSizeAtCompose.toLocaleString()} carriers
-                </span>
-                <span className="col-span-2 text-right">
-                  <span className="inline-flex items-center border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-emerald-800">
-                    Active
-                  </span>
-                </span>
-              </li>
-            </ul>
-          </div>
+          )}
         </div>
       </section>
     </>
+  );
+}
+
+function EmptyState({ slug }: { slug: string }) {
+  return (
+    <div className="border border-line bg-surface px-8 py-16 text-center">
+      <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-stone-500">
+        No specs yet
+      </p>
+      <h2 className="font-display mt-2 text-2xl text-stone-900">
+        Compose your first audience spec.
+      </h2>
+      <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-stone-600">
+        Define the carrier criteria you want, anything to exclude, and your
+        budget and price per qualified transfer. You can have multiple specs
+        running in parallel.
+      </p>
+      <Link
+        href={`/partner/${slug}/spec/new`}
+        className="mt-6 inline-flex items-center gap-2 bg-orange-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-orange-700"
+      >
+        <Plus className="h-4 w-4" />
+        Create a spec
+      </Link>
+    </div>
+  );
+}
+
+function SpecRow({ slug, spec }: { slug: string; spec: AudienceSpec }) {
+  const criteria = spec.criteria;
+  const summaryParts: string[] = [];
+  if (criteria.domicile_states?.length)
+    summaryParts.push(`${criteria.domicile_states.length} state${criteria.domicile_states.length === 1 ? "" : "s"}`);
+  if (criteria.equipment_classes?.length)
+    summaryParts.push(`${criteria.equipment_classes.length} equip class${criteria.equipment_classes.length === 1 ? "" : "es"}`);
+  if (criteria.fleet_size_min != null || criteria.fleet_size_max != null)
+    summaryParts.push(
+      `fleet ${criteria.fleet_size_min ?? "·"}–${criteria.fleet_size_max ?? "·"} PU`,
+    );
+  if (criteria.authority_age_years_min != null)
+    summaryParts.push(`≥${criteria.authority_age_years_min}y authority`);
+  if (criteria.hazmat && criteria.hazmat !== "either")
+    summaryParts.push(`hazmat ${criteria.hazmat}`);
+
+  return (
+    <li>
+      <Link
+        href={`/partner/${slug}/spec/${spec.id}`}
+        className="grid grid-cols-12 gap-4 border border-line bg-surface px-5 py-4 transition-colors hover:border-orange-300 hover:bg-stone-50/40"
+      >
+        <div className="col-span-12 md:col-span-5">
+          <div className="flex items-center gap-2">
+            <span
+              className={`inline-flex items-center border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] ${STATUS_STYLES[spec.status]}`}
+            >
+              {spec.status}
+            </span>
+            <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-stone-500">
+              Updated {new Date(spec.updated_at).toLocaleDateString()}
+            </span>
+          </div>
+          <h3 className="font-display mt-1.5 text-lg text-stone-900">{spec.name}</h3>
+          <p className="mt-0.5 text-xs text-stone-500">
+            {summaryParts.length ? summaryParts.join(" · ") : "No criteria yet"}
+          </p>
+        </div>
+        <div className="col-span-6 md:col-span-3">
+          <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-stone-500">
+            Budget cap
+          </p>
+          <p className="mt-1 font-mono text-sm text-stone-900">
+            {spec.budget_cap_cents != null
+              ? `$${(spec.budget_cap_cents / 100).toLocaleString()}`
+              : "—"}
+          </p>
+        </div>
+        <div className="col-span-6 md:col-span-4">
+          <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-stone-500">
+            Price per transfer
+          </p>
+          <p className="mt-1 font-mono text-sm text-stone-900">
+            {spec.price_per_transfer_cents != null
+              ? `$${(spec.price_per_transfer_cents / 100).toLocaleString()}`
+              : "—"}
+          </p>
+        </div>
+      </Link>
+    </li>
   );
 }

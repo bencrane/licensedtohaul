@@ -1,92 +1,114 @@
 'use client';
 
 import { useActionState } from 'react';
-import {
-  signInWithPassword,
-  signInWithMagicLink,
-  type AuthState,
-} from '@/app/auth/actions';
+import { ArrowRight } from 'lucide-react';
+import Wordmark from '@/components/site/Wordmark';
+import { signIn, type AuthState } from '@/app/auth/actions';
 
 const initial: AuthState = { error: null, info: null };
 
 export default function LoginPage() {
-  const [pwState, pwAction, pwPending] = useActionState(signInWithPassword, initial);
-  const [mlState, mlAction, mlPending] = useActionState(signInWithMagicLink, initial);
+  const [state, action, pending] = useActionState(signIn, initial);
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-background px-6 text-foreground">
-      <div className="w-full max-w-sm">
-        <header className="mb-8">
-          <h1 className="text-xs uppercase tracking-widest text-stone-500 font-mono">
-            Licensed to Haul
-          </h1>
-          <p className="font-display text-3xl text-stone-900 mt-1">Sign in</p>
-        </header>
-
-        <form action={pwAction} className="flex flex-col gap-3">
-          <input
-            name="email"
-            type="email"
-            autoComplete="email"
-            placeholder="Email"
-            required
-            className="border border-line bg-surface px-3 py-2 placeholder-stone-400 focus:border-orange-500 focus:outline-none"
-          />
-          <input
-            name="password"
-            type="password"
-            autoComplete="current-password"
-            placeholder="Password"
-            required
-            className="border border-line bg-surface px-3 py-2 placeholder-stone-400 focus:border-orange-500 focus:outline-none"
-          />
-          <button
-            type="submit"
-            disabled={pwPending}
-            className="mt-1 bg-orange-600 px-3 py-2 text-sm font-semibold text-white hover:bg-orange-700 disabled:opacity-50"
-          >
-            {pwPending ? 'Signing in…' : 'Sign in'}
-          </button>
-          {pwState.error ? (
-            <p className="text-sm text-red-700" role="alert">
-              {pwState.error}
-            </p>
-          ) : null}
-        </form>
-
-        <div className="my-6 flex items-center gap-3 text-[10px] font-mono uppercase tracking-[0.14em] text-stone-500">
-          <span className="h-px flex-1 bg-line" />
-          <span>OR</span>
-          <span className="h-px flex-1 bg-line" />
+    <main className="paper-grid flex flex-1 items-center justify-center px-6 py-16">
+      <div className="w-full max-w-md">
+        <div className="mb-8 flex justify-center">
+          <Wordmark href="/login" />
         </div>
 
-        <form action={mlAction} className="flex flex-col gap-3">
-          <input
-            name="email"
-            type="email"
-            autoComplete="email"
-            placeholder="Email"
-            required
-            className="border border-line bg-surface px-3 py-2 placeholder-stone-400 focus:border-orange-500 focus:outline-none"
-          />
-          <button
-            type="submit"
-            disabled={mlPending}
-            className="border border-line-strong bg-surface px-3 py-2 text-sm font-medium text-stone-800 hover:border-orange-400 disabled:opacity-50"
+        <div className="border border-line bg-surface px-8 py-9 shadow-[0_1px_0_rgba(26,20,16,0.04)]">
+          <header className="mb-6">
+            <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-stone-500">
+              Sign in
+            </p>
+            <h1 className="font-display mt-1 text-3xl leading-tight tracking-tight text-stone-900">
+              Welcome back.
+            </h1>
+            <p className="mt-2 text-sm leading-relaxed text-stone-500">
+              Sign in with your password, or we&apos;ll email you a one-tap link.
+              First time here? Use the link option — we&apos;ll create your account.
+            </p>
+          </header>
+
+          <form action={action} className="flex flex-col gap-4">
+            <label className="flex flex-col gap-1.5">
+              <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-stone-500">
+                Email
+              </span>
+              <input
+                name="email"
+                type="email"
+                autoComplete="email"
+                required
+                placeholder="you@yourcompany.com"
+                className="border border-line bg-background px-3 py-2.5 text-[15px] text-stone-900 placeholder-stone-400 focus:border-orange-500 focus:outline-none"
+              />
+            </label>
+
+            <label className="flex flex-col gap-1.5">
+              <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-stone-500">
+                Password <span className="text-stone-400">— optional</span>
+              </span>
+              <input
+                name="password"
+                type="password"
+                autoComplete="current-password"
+                placeholder="Leave blank to receive a sign-in link"
+                className="border border-line bg-background px-3 py-2.5 text-[15px] text-stone-900 placeholder-stone-400 focus:border-orange-500 focus:outline-none"
+              />
+            </label>
+
+            <button
+              type="submit"
+              name="intent"
+              value="password"
+              disabled={pending}
+              className="group mt-2 inline-flex items-center justify-center gap-1.5 bg-orange-600 px-4 py-3 text-sm font-semibold uppercase tracking-[0.08em] text-white transition-colors hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {pending ? 'Working…' : 'Sign in'}
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+            </button>
+
+            <button
+              type="submit"
+              name="intent"
+              value="magic_link"
+              disabled={pending}
+              className="-mt-1 inline-flex items-center justify-center gap-1 px-4 py-2 text-[13px] font-medium text-stone-700 transition-colors hover:text-orange-700 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              → Email me a sign-in link instead
+            </button>
+
+            {state.error && (
+              <p
+                className="border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
+                role="alert"
+              >
+                {state.error}
+              </p>
+            )}
+            {state.info && (
+              <p
+                className="border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800"
+                role="status"
+              >
+                {state.info}
+              </p>
+            )}
+          </form>
+        </div>
+
+        <p className="mt-6 text-center text-xs leading-relaxed text-stone-500">
+          By signing in you agree to our{' '}
+          <a
+            href="https://licensedtohaul.com/about"
+            className="underline-offset-2 hover:text-orange-700 hover:underline"
           >
-            {mlPending ? 'Sending link…' : 'Send magic link'}
-          </button>
-          {mlState.error ? (
-            <p className="text-sm text-red-700" role="alert">
-              {mlState.error}
-            </p>
-          ) : null}
-          {mlState.info ? (
-            <p className="text-sm text-emerald-700" role="status">
-              {mlState.info}
-            </p>
-          ) : null}
-        </form>
+            terms
+          </a>
+          .
+        </p>
       </div>
     </main>
   );

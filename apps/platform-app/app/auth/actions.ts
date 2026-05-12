@@ -8,15 +8,42 @@ export type AuthState = { error: string | null; info: string | null };
 
 const initial: AuthState = { error: null, info: null };
 
-export async function signInWithPassword(
+export async function signIn(
   _prev: AuthState,
   formData: FormData,
 ): Promise<AuthState> {
   const email = String(formData.get('email') ?? '').trim();
-  const password = String(formData.get('password') ?? '');
+  const intent = String(formData.get('intent') ?? '');
 
-  if (!email || !password) {
-    return { ...initial, error: 'Email and password are required.' };
+  if (!email) return { ...initial, error: 'Email is required.' };
+
+  if (intent === 'magic_link') {
+    const h = await headers();
+    const host = h.get('host') ?? '';
+    const proto =
+      h.get('x-forwarded-proto') ?? (host.startsWith('localhost') ? 'http' : 'https');
+    const redirectTo = `${proto}://${host}/auth/callback`;
+
+    const supabase = await createClient();
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: redirectTo },
+    });
+    if (error) return { ...initial, error: error.message };
+
+    return {
+      error: null,
+      info: 'Check your email for the sign-in link.',
+    };
+  }
+
+  // Password sign-in (default).
+  const password = String(formData.get('password') ?? '');
+  if (!password) {
+    return {
+      ...initial,
+      error: 'Password is required. Or use the magic-link option below.',
+    };
   }
 
   const supabase = await createClient();
@@ -24,28 +51,6 @@ export async function signInWithPassword(
   if (error) return { ...initial, error: error.message };
 
   redirect('/');
-}
-
-export async function signInWithMagicLink(
-  _prev: AuthState,
-  formData: FormData,
-): Promise<AuthState> {
-  const email = String(formData.get('email') ?? '').trim();
-  if (!email) return { ...initial, error: 'Email is required.' };
-
-  const h = await headers();
-  const host = h.get('host') ?? '';
-  const proto = h.get('x-forwarded-proto') ?? (host.startsWith('localhost') ? 'http' : 'https');
-  const redirectTo = `${proto}://${host}/auth/callback`;
-
-  const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithOtp({
-    email,
-    options: { emailRedirectTo: redirectTo },
-  });
-  if (error) return { ...initial, error: error.message };
-
-  return { error: null, info: 'Check your email for the sign-in link.' };
 }
 
 export async function signOut() {
