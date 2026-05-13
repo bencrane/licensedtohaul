@@ -3,6 +3,13 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { Client } from 'pg';
 
+// Migrations applied in order inside each test schema.
+// 006 must precede 007 because 007 ALTERs a table created in 006.
+const MIGRATIONS = [
+  '006_factor_workflow.sql',
+  '007_partner_portal_rebuild.sql',
+];
+
 export async function createTestSchema(): Promise<{
   schemaName: string;
   client: Client;
@@ -22,11 +29,13 @@ export async function createTestSchema(): Promise<{
   await client.query(`CREATE SCHEMA "${schemaName}"`);
   await client.query(`SET search_path = "${schemaName}"`);
 
-  const sqlPath = path.resolve(__dirname, '../../migrations/006_factor_workflow.sql');
-  const rawSql = readFileSync(sqlPath, 'utf-8');
-  // Replace `lth.` with `"schemaName".` in table references
-  const sql = rawSql.replace(/\blth\./g, `"${schemaName}".`);
-  await client.query(sql);
+  for (const migration of MIGRATIONS) {
+    const sqlPath = path.resolve(__dirname, '../../migrations', migration);
+    const rawSql = readFileSync(sqlPath, 'utf-8');
+    // Replace `lth.` with `"schemaName".` in table references
+    const sql = rawSql.replace(/\blth\./g, `"${schemaName}".`);
+    await client.query(sql);
+  }
 
   const cleanup = async () => {
     try {

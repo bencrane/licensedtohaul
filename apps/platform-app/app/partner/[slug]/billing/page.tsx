@@ -1,232 +1,141 @@
 import { notFound } from "next/navigation";
-import { Download, FileText, CreditCard, RefreshCw } from "lucide-react";
-import PageHeader from "@/components/dashboard/PageHeader";
-import { getMockPartner } from "@/lib/mock-partner";
+import { Pool } from "pg";
+import { ExternalLink } from "lucide-react";
+
+function getPool(): Pool {
+  const connString = process.env.HQX_DB_URL_POOLED;
+  if (!connString) throw new Error("HQX_DB_URL_POOLED not set");
+  return new Pool({ connectionString: connString, max: 2 });
+}
+
+let _pool: Pool | null = null;
+function pool(): Pool {
+  if (!_pool) _pool = getPool();
+  return _pool;
+}
 
 type Props = {
   params: Promise<{ slug: string }>;
 };
 
-const STATUS_STYLES = {
-  paid: "border-emerald-200 bg-emerald-50 text-emerald-800",
-  due: "border-amber-200 bg-amber-50 text-amber-800",
-  draft: "border-stone-200 bg-stone-100 text-stone-700",
-} as const;
-
 export async function generateMetadata({ params }: Props) {
   const { slug } = await params;
-  return { title: `Billing & agreement · ${slug} — Licensed to Haul` };
+  return { title: `Billing · ${slug} — Licensed to Haul` };
 }
 
 export default async function BillingPage({ params }: Props) {
   const { slug } = await params;
   if (!slug) notFound();
-  const data = getMockPartner(slug);
-  const { agreement, partner, invoices } = data;
+
+  const SCHEMA = process.env.LTH_SCHEMA ?? "lth";
+
+  // Load Stripe customer info
+  let stripeCustomerId: string | null = null;
+  let stripeSubscriptionId: string | null = null;
+  let platformFeeCents: number | null = null;
+  let disbursementBps: number | null = null;
+
+  try {
+    const { rows: scRows } = await pool().query<{
+      stripe_customer_id: string;
+      stripe_subscription_id: string | null;
+    }>(
+      `SELECT stripe_customer_id, stripe_subscription_id
+       FROM "${SCHEMA}".factor_stripe_customers
+       WHERE factor_slug = $1`,
+      [slug],
+    );
+    stripeCustomerId = scRows[0]?.stripe_customer_id ?? null;
+    stripeSubscriptionId = scRows[0]?.stripe_subscription_id ?? null;
+
+    const { rows: cfgRows } = await pool().query<{
+      platform_fee_cents: string;
+      disbursement_bps: string;
+    }>(
+      `SELECT platform_fee_cents, disbursement_bps
+       FROM "${SCHEMA}".factor_billing_config
+       WHERE factor_slug = $1`,
+      [slug],
+    );
+    platformFeeCents = cfgRows[0] ? parseInt(cfgRows[0].platform_fee_cents, 10) : null;
+    disbursementBps = cfgRows[0] ? parseInt(cfgRows[0].disbursement_bps, 10) : null;
+  } catch {
+    // Table may not exist — show not-configured state
+  }
+
+  const stripePortalUrl = stripeCustomerId
+    ? `https://billing.stripe.com/p/login/test_placeholder?customer=${stripeCustomerId}`
+    : null;
 
   return (
-    <>
-      <PageHeader
-        eyebrow="Billing & agreement"
-        title="Your founding agreement, invoices, and renewal."
-        description="Founding pricing is locked here for the lifetime of the account. All invoices for this delivery window and beyond live in one place."
-        meta={
-          <span className="inline-flex items-center gap-1.5">
-            Founding · Cohort 0{partner.cohort}
-          </span>
-        }
-        actions={
-          <button className="inline-flex items-center gap-2 border border-line-strong bg-white px-3 py-2 text-sm font-medium text-stone-800 transition-colors hover:border-orange-400 hover:text-orange-700">
-            <Download className="h-4 w-4" />
-            All invoices
-          </button>
-        }
-      />
+    <div className="flex-1 bg-background">
+      <div className="border-b border-line bg-white px-6 py-6">
+        <h1 className="font-display text-2xl text-stone-900">Billing</h1>
+        <p className="mt-1 text-sm text-stone-500">Stripe customer portal · invoice preview</p>
+      </div>
 
-      <section className="flex-1 bg-background">
-        <div className="mx-auto max-w-[1400px] space-y-10 px-6 py-8">
-          {/* Agreement summary */}
-          <div className="border border-line bg-surface">
-            <header className="border-b border-line px-6 py-3">
-              <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-500">
-                Active agreement
-              </h2>
-            </header>
-            <div className="grid gap-px bg-line md:grid-cols-3">
-              <AgreementCell
-                label="Signed"
-                value={agreement.signed}
-                detail={`${agreement.windowDays}-day delivery window`}
-              />
-              <AgreementCell
-                label="Committed"
-                value={`$${agreement.totalCommittedUsd.toLocaleString()}`}
-                detail={`${agreement.transferTarget} transfers · $${agreement.pricePerTransferUsd}/transfer (locked)`}
-              />
-              <AgreementCell
-                label="Window ends"
-                value={agreement.endsOn}
-                detail={`${agreement.daysRemaining} days remaining`}
-              />
-              <AgreementCell
-                label="Refund-or-rollover trigger"
-                value={agreement.slaRefundOrRolloverAfter}
-                detail="Unfulfilled transfers refund or roll forward"
-              />
-              <AgreementCell
-                label="Cohort pricing"
-                value="Locked for life"
-                detail="Founding-rate carries on every renewal"
-              />
-              <AgreementCell
-                label="Renewal decision"
-                value="Open"
-                detail="Renewal options available 14 days before window close"
-              />
+      <div className="mx-auto max-w-[900px] space-y-6 px-6 py-8">
+        {/* Stripe customer */}
+        <div className="border border-line bg-white divide-y divide-line">
+          <div className="px-6 py-4">
+            <h2 className="font-display text-lg text-stone-900">Stripe Billing</h2>
+          </div>
+
+          <div className="px-6 py-4 flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-stone-900">Stripe customer ID</p>
+              <p className="mt-0.5 font-mono text-xs text-stone-500">
+                {stripeCustomerId ?? "Not configured"}
+              </p>
             </div>
+            {stripePortalUrl && (
+              <a
+                href={stripePortalUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-orange-700 hover:text-orange-800"
+              >
+                Customer portal
+                <ExternalLink className="h-3.5 w-3.5" />
+              </a>
+            )}
           </div>
 
-          {/* Invoices */}
-          <div>
-            <h2 className="font-display mb-4 text-2xl text-stone-900">Invoices</h2>
-            <div className="overflow-x-auto border border-line bg-surface">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-line bg-stone-50/60 text-left">
-                    <Th>Number</Th>
-                    <Th>Date</Th>
-                    <Th>Description</Th>
-                    <Th align="right">Amount</Th>
-                    <Th align="right">Status</Th>
-                    <Th align="right">PDF</Th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {invoices.map((inv) => (
-                    <tr key={inv.id} className="border-b border-line last:border-b-0 hover:bg-stone-50/40">
-                      <td className="px-4 py-3 font-mono text-xs text-stone-700">
-                        <span className="inline-flex items-center gap-1.5">
-                          <FileText className="h-3 w-3 text-stone-400" />
-                          {inv.number}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-stone-800">{inv.date}</td>
-                      <td className="px-4 py-3 text-stone-700">
-                        {inv.description}
-                      </td>
-                      <td className="px-4 py-3 text-right font-mono text-stone-900">
-                        ${inv.amountUsd.toLocaleString()}
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <span
-                          className={`inline-flex items-center border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] ${STATUS_STYLES[inv.status]}`}
-                        >
-                          {inv.status}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <button className="text-stone-500 transition-colors hover:text-orange-700">
-                          <Download className="h-4 w-4" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          {stripeSubscriptionId && (
+            <div className="px-6 py-4 flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-stone-900">Subscription ID</p>
+                <p className="mt-0.5 font-mono text-xs text-stone-500">{stripeSubscriptionId}</p>
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* Payment method + renewal */}
-          <div className="grid gap-6 md:grid-cols-2">
-            <section className="border border-line bg-surface">
-              <header className="border-b border-line px-5 py-3">
-                <h3 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-500">
-                  Payment method
-                </h3>
-              </header>
-              <div className="p-5">
-                <div className="flex items-start gap-3">
-                  <span className="inline-flex h-9 w-9 flex-none items-center justify-center border border-line bg-stone-50 text-stone-700">
-                    <CreditCard className="h-4 w-4" />
-                  </span>
-                  <div>
-                    <p className="font-mono text-sm text-stone-900">
-                      ACH · Bank of America · ••••3417
-                    </p>
-                    <p className="mt-1 text-xs text-stone-500">
-                      Default for invoices over $5,000
-                    </p>
-                  </div>
-                </div>
-                <button className="mt-5 text-sm font-medium text-orange-700 hover:text-orange-800">
-                  Update method
-                </button>
+          {platformFeeCents !== null && disbursementBps !== null && (
+            <>
+              <div className="px-6 py-4 flex items-center justify-between">
+                <p className="text-sm font-medium text-stone-900">Quarterly platform fee</p>
+                <p className="text-sm text-stone-700">
+                  ${(platformFeeCents / 100).toLocaleString("en-US", {
+                    minimumFractionDigits: 0,
+                  })}/quarter
+                </p>
               </div>
-            </section>
+              <div className="px-6 py-4 flex items-center justify-between">
+                <p className="text-sm font-medium text-stone-900">Disbursement skim</p>
+                <p className="text-sm text-stone-700">{disbursementBps} bps (0.{disbursementBps}%)</p>
+              </div>
+            </>
+          )}
 
-            <section className="border border-orange-200 bg-orange-50/40">
-              <header className="border-b border-orange-200 px-5 py-3">
-                <h3 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-orange-800">
-                  Renewal
-                </h3>
-              </header>
-              <div className="p-5">
-                <p className="font-display text-lg text-stone-900">
-                  Reup at founding-cohort pricing.
-                </p>
-                <p className="mt-2 text-sm text-stone-700">
-                  Your founding-rate of ${agreement.pricePerTransferUsd}/transfer
-                  carries to the next window. Renewal options open 14 days before
-                  the current window closes.
-                </p>
-                <button className="mt-5 inline-flex items-center gap-2 bg-orange-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-orange-700">
-                  <RefreshCw className="h-4 w-4" />
-                  Renew agreement
-                </button>
-              </div>
-            </section>
-          </div>
+          {!stripeCustomerId && (
+            <div className="px-6 py-6 text-center">
+              <p className="text-sm text-stone-500">
+                Billing not yet configured. Contact support to onboard Stripe Billing.
+              </p>
+            </div>
+          )}
         </div>
-      </section>
-    </>
-  );
-}
-
-function AgreementCell({
-  label,
-  value,
-  detail,
-}: {
-  label: string;
-  value: string;
-  detail: string;
-}) {
-  return (
-    <div className="bg-surface p-5">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-500">
-        {label}
-      </p>
-      <p className="font-display mt-2 text-xl text-stone-900">{value}</p>
-      <p className="mt-1 text-xs text-stone-500">{detail}</p>
+      </div>
     </div>
-  );
-}
-
-function Th({
-  children,
-  align = "left",
-}: {
-  children: React.ReactNode;
-  align?: "left" | "right";
-}) {
-  return (
-    <th
-      scope="col"
-      className={`px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500 ${
-        align === "right" ? "text-right" : ""
-      }`}
-    >
-      {children}
-    </th>
   );
 }

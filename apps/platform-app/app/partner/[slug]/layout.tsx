@@ -1,6 +1,5 @@
 import DashboardShell from "@/components/dashboard/DashboardShell";
-import PartnerSidebar from "@/components/partner-dashboard/PartnerSidebar";
-import { getMockPartner } from "@/lib/mock-partner";
+import PartnerSidebar from "@/components/partner-sidebar/PartnerSidebar";
 
 type Props = {
   children: React.ReactNode;
@@ -9,16 +8,18 @@ type Props = {
 
 export default async function PartnerShell({ children, params }: Props) {
   const { slug } = await params;
-  const data = getMockPartner(slug);
+  // Derive display name from slug for sidebar — real name queried per-page
+  const partnerName = slug
+    .split("-")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
 
   return (
     <DashboardShell
       sidebar={
         <PartnerSidebar
           slug={slug}
-          partnerName={data.partner.shortName}
-          founding={data.partner.founding}
-          awaitingAction={data.awaitingAction}
+          partnerName={partnerName}
         />
       }
     >

@@ -1,6 +1,18 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { pool } from "@/lib/audience-specs/db";
+import { Pool } from "pg";
+
+function getPool(): Pool {
+  const connString = process.env.HQX_DB_URL_POOLED;
+  if (!connString) throw new Error("HQX_DB_URL_POOLED not set");
+  return new Pool({ connectionString: connString, max: 2 });
+}
+
+let _pool: Pool | null = null;
+function pool(): Pool {
+  if (!_pool) _pool = getPool();
+  return _pool;
+}
 
 export default async function RootPage() {
   const supabase = await createClient();
@@ -10,8 +22,7 @@ export default async function RootPage() {
 
   if (!user) redirect("/login");
 
-  // Find the first active org the user belongs to. Send partner-org members to
-  // their spec list; carrier-org members to their carrier dashboard.
+  // Find the first active org the user belongs to.
   const { rows } = await pool().query<{ slug: string | null; category: string; usdot: string | null }>(
     `
     SELECT o.slug, o.category, o.usdot::text AS usdot
@@ -31,8 +42,8 @@ export default async function RootPage() {
   // Carrier-side org with a USDOT → carrier dashboard.
   if (org.usdot) redirect(`/dashboard/${org.usdot}`);
 
-  // Otherwise (partner-side or unclaimed carrier) → partner portal by slug.
-  if (org.slug) redirect(`/partner/${org.slug}/spec`);
+  // Partner-side org → partner portal overview.
+  if (org.slug) redirect(`/partner/${org.slug}`);
 
   redirect("/access-expired");
 }

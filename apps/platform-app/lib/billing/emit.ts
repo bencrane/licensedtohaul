@@ -29,11 +29,13 @@ export async function emitPendingBillingEvents(
     stripe_customer_id: string | null;
     stripe_meter_id_noa_transition: string | null;
     stripe_meter_id_submission_cleared: string | null;
+    stripe_meter_id_disbursement_skim: string | null;
   }>(
     `SELECT be.id, be.factor_slug, be.event_name, be.payload,
             sc.stripe_customer_id,
             sc.stripe_meter_id_noa_transition,
-            sc.stripe_meter_id_submission_cleared
+            sc.stripe_meter_id_submission_cleared,
+            sc.stripe_meter_id_disbursement_skim
      FROM "${SCHEMA}".factor_billing_events be
      LEFT JOIN "${SCHEMA}".factor_stripe_customers sc ON sc.factor_slug = be.factor_slug
      WHERE be.emitted = false
@@ -51,10 +53,17 @@ export async function emitPendingBillingEvents(
       }
 
       let meterId: string | null = null;
+      let meterValue = 1;
+
       if (evt.event_name === 'noa.transition') {
         meterId = evt.stripe_meter_id_noa_transition;
       } else if (evt.event_name === 'submission.cleared') {
         meterId = evt.stripe_meter_id_submission_cleared;
+      } else if (evt.event_name === 'disbursement.observed') {
+        meterId = evt.stripe_meter_id_disbursement_skim;
+        // Value is the amount in cents; the meter tracks skim volume
+        const amountCents = Number(evt.payload?.amount_cents ?? 0);
+        meterValue = amountCents;
       }
 
       if (!meterId) {
@@ -65,7 +74,7 @@ export async function emitPendingBillingEvents(
       const result = await billing.emitMeterEvent({
         customer: evt.stripe_customer_id,
         event: meterId,
-        value: 1,
+        value: meterValue,
         idempotencyKey: evt.id,
       });
 
