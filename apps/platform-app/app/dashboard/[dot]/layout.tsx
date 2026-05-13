@@ -29,7 +29,7 @@ export default async function CarrierShell({ children, params }: Props) {
       `SELECT COUNT(*) AS count
          FROM lth.organization_memberships m
          JOIN lth.users u ON u.id = m.user_id
-         JOIN lth.organizations o ON o.id = m.org_id
+         JOIN lth.organizations o ON o.id = m.organization_id
         WHERE u.auth_user_id = $1
           AND o.usdot = $2
           AND m.status = 'active'`,

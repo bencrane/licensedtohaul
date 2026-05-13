@@ -7,12 +7,12 @@ import { getTransferById } from "@/lib/transfers/actions";
 import { listMessagesForTransfer } from "@/lib/messages/actions";
 
 type Props = {
-  params: Promise<{ dot: string; transfer_id: string }>;
+  params: Promise<{ dot: string; dealId: string }>;
 };
 
 export async function generateMetadata({ params }: Props) {
-  const { transfer_id } = await params;
-  const t = await getTransferById(transfer_id);
+  const { dealId } = await params;
+  const t = await getTransferById(dealId);
   return {
     title: t
       ? `${t.contact_snapshot.name} — Licensed to Haul`
@@ -21,14 +21,14 @@ export async function generateMetadata({ params }: Props) {
 }
 
 export default async function CarrierConversationPage({ params }: Props) {
-  const { dot, transfer_id } = await params;
+  const { dot, dealId } = await params;
   const cleanDot = dot.replace(/\D/g, "");
-  if (!cleanDot || !transfer_id) notFound();
+  if (!cleanDot || !dealId) notFound();
 
-  const transfer = await getTransferById(transfer_id);
+  const transfer = await getTransferById(dealId);
   if (!transfer) notFound();
 
-  const messages = await listMessagesForTransfer(transfer_id);
+  const messages = await listMessagesForTransfer(dealId);
   const cs = transfer.contact_snapshot;
 
   return (
@@ -52,7 +52,7 @@ export default async function CarrierConversationPage({ params }: Props) {
         <div className="mx-auto max-w-[900px] px-6 py-8">
           <CarrierMessageThread
             dot={cleanDot}
-            transferId={transfer_id}
+            transferId={dealId}
             partnerName={cs.name}
             messages={messages}
           />

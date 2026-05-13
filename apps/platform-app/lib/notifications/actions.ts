@@ -25,11 +25,12 @@ export async function getNotificationsForDot(dot: string): Promise<Notification[
 
   const { rows } = await pool().query<Notification>(
     `SELECT n.id, n.recipient_user_id, n.category, n.subject, n.body,
-            n.from_name, n.from_email, n.primary_action, n.created_at, n.read_at
+            n.from_name, n.from_email, n.primary_action, n.created_at,
+            CASE WHEN n.is_read THEN n.created_at ELSE NULL END AS read_at
        FROM lth.notifications n
        JOIN lth.users u ON u.id = n.recipient_user_id
        JOIN lth.organization_memberships m ON m.user_id = u.id
-       JOIN lth.organizations o ON o.id = m.org_id
+       JOIN lth.organizations o ON o.id = m.organization_id
       WHERE o.usdot = $1
         AND m.status = 'active'
       ORDER BY n.created_at DESC

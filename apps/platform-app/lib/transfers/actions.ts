@@ -93,6 +93,6 @@ export async function updateTransferDisposition(
   );
 
   revalidatePath(`/partner/${slug}/pipeline`);
-  revalidatePath(`/partner/${slug}/transfers`);
+  revalidatePath(`/partner/${slug}/deals`);
   return { ok: true };
 }
