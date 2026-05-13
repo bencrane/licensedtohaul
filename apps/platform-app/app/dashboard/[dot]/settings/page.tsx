@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
 import NotificationPreferenceRow from "@/components/dashboard/NotificationPreferenceRow";
+import DataPartnerLog from "@/components/dashboard/DataPartnerLog";
 import { getMockDashboard } from "@/lib/mock-dashboard";
 
 type Props = {
@@ -133,12 +134,25 @@ export default async function SettingsPage({ params }: Props) {
                   description="One-click download of your profile, compliance history, safety records, fleet roster, inbox, and notification preferences. JSON + PDF formats. Delivered to your email."
                   actionLabel="Request export"
                 />
-                <ActionCard
-                  icon={<ExternalLink className="h-4 w-4 text-stone-600" />}
-                  title="Data partners"
-                  description="See exactly which operators (insurance brokers, factors, lenders) have received a quote request from you and the data fields they received. Revoke access for any partner."
-                  actionLabel="View access log"
-                />
+                <div className="border border-line bg-surface">
+                  <div className="flex items-start gap-3 p-5 md:flex-row md:items-center md:justify-between">
+                    <div className="flex items-start gap-3 md:items-center">
+                      <span className="inline-flex h-8 w-8 flex-none items-center justify-center border border-line bg-stone-50">
+                        <ExternalLink className="h-4 w-4 text-stone-600" />
+                      </span>
+                      <div>
+                        <p className="text-sm font-semibold text-stone-900">Data partners</p>
+                        <p className="mt-1 text-xs leading-relaxed text-stone-600 md:max-w-2xl">
+                          See exactly which operators (factors, lenders, insurance brokers) have received a quote request from you and the data fields they received. Revoke access for any partner.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="border-t border-line px-5 pb-5">
+                    <h2 className="font-display text-2xl text-stone-900 sr-only">Data partners access log</h2>
+                    <DataPartnerLog />
+                  </div>
+                </div>
                 <ActionCard
                   icon={<Trash2 className="h-4 w-4 text-red-600" />}
                   title="Delete account"
