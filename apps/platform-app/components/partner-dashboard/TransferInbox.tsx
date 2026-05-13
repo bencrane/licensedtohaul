@@ -206,13 +206,13 @@ export default function TransferInbox({
     return (
       <div className="mx-auto max-w-md border border-line bg-surface px-7 py-10 text-center">
         <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-stone-500">
-          No transfers yet
+          No deals yet
         </p>
         <h2 className="font-display mt-1.5 text-xl text-stone-900">
           Your inbox is empty.
         </h2>
         <p className="mt-2.5 text-sm leading-relaxed text-stone-600">
-          When carriers match your active specs, they appear here.
+          When carriers request a quote, their deal appears here.
         </p>
       </div>
     );
@@ -220,14 +220,6 @@ export default function TransferInbox({
 
   return (
     <div>
-      <div className="mb-5 flex items-end justify-between">
-        <div>
-          <h2 className="font-display text-2xl text-stone-900">Transfer inbox</h2>
-          <p className="mt-1 text-sm text-stone-500">
-            {newCount} new · {transfers.length} total
-          </p>
-        </div>
-      </div>
       <ul className="space-y-3">
         {transfers.map((t) => (
           <TransferCard key={t.id} slug={slug} row={t} />
