@@ -118,7 +118,6 @@ export default function EventFeed({
               All
             </button>
             <button className="px-2.5 py-1 hover:text-stone-700">Compliance</button>
-            <button className="px-2.5 py-1 hover:text-stone-700">Freight</button>
             <button className="px-2.5 py-1 hover:text-stone-700">Quotes</button>
           </div>
         </div>

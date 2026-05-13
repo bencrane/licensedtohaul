@@ -1,7 +1,5 @@
 import Link from "next/link";
 import {
-  Truck,
-  Shield,
   Wallet,
   FileText,
   Cog,
@@ -9,8 +7,6 @@ import {
 } from "lucide-react";
 
 const actions = [
-  { label: "Find freight", icon: <Truck className="h-4 w-4" />, href: "#" },
-  { label: "Request insurance quote", icon: <Shield className="h-4 w-4" />, href: "#" },
   { label: "Request financing quote", icon: <Wallet className="h-4 w-4" />, href: "#" },
   { label: "File MCS-150 update", icon: <FileText className="h-4 w-4" />, href: "#" },
   { label: "Manage equipment + drivers", icon: <Cog className="h-4 w-4" />, href: "#" },

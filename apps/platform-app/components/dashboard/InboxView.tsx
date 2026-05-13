@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import {
   Archive,
@@ -18,6 +18,7 @@ import {
   Settings as SettingsIcon,
 } from "lucide-react";
 import type { InboxCategory, InboxMessage } from "@/lib/mock-dashboard";
+import { subscribeToInbox, getInboxSnapshot } from "@/lib/inbox-store";
 
 const CATEGORY_STYLES: Record<
   InboxCategory,
@@ -72,24 +73,26 @@ const FILTER_OPTIONS: { value: Filter; label: string }[] = [
   { value: "unread", label: "Unread" },
   { value: "important", label: "Important" },
   { value: "compliance", label: "Compliance" },
-  { value: "freight", label: "Freight" },
-  { value: "insurance", label: "Insurance" },
   { value: "financing", label: "Financing" },
   { value: "safety", label: "Safety" },
 ];
 
 export default function InboxView({ messages }: { messages: InboxMessage[] }) {
+  // Merge in-memory submissions (client-side store) with server-seeded messages
+  const storeMessages = useSyncExternalStore(subscribeToInbox, getInboxSnapshot);
+  const allMessages = useMemo(() => [...storeMessages, ...messages], [storeMessages, messages]);
+
   const [filter, setFilter] = useState<Filter>("all");
-  const [selectedId, setSelectedId] = useState<string>(messages[0]?.id ?? "");
+  const [selectedId, setSelectedId] = useState<string>(allMessages[0]?.id ?? "");
 
   const filtered = useMemo(() => {
-    return messages.filter((m) => {
+    return allMessages.filter((m) => {
       if (filter === "all") return true;
       if (filter === "unread") return !m.read;
       if (filter === "important") return m.important;
       return m.category === filter;
     });
-  }, [messages, filter]);
+  }, [allMessages, filter]);
 
   const selected = useMemo(
     () => filtered.find((m) => m.id === selectedId) ?? filtered[0],
@@ -103,7 +106,7 @@ export default function InboxView({ messages }: { messages: InboxMessage[] }) {
         <div className="flex items-center gap-1 overflow-x-auto border-b border-line bg-stone-50/40 px-4 py-2 text-[10px] font-mono uppercase tracking-[0.14em] text-stone-500">
           {FILTER_OPTIONS.map((opt) => {
             const active = filter === opt.value;
-            const count = messages.filter((m) => {
+            const count = allMessages.filter((m) => {
               if (opt.value === "all") return true;
               if (opt.value === "unread") return !m.read;
               if (opt.value === "important") return m.important;

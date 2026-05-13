@@ -1,9 +1,6 @@
 import { notFound } from "next/navigation";
 import {
   User,
-  Bell,
-  Lock,
-  Database,
   Download,
   Trash2,
   KeyRound,
@@ -12,18 +9,12 @@ import {
 } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
 import NotificationPreferenceRow from "@/components/dashboard/NotificationPreferenceRow";
+import DataPartnerLog from "@/components/dashboard/DataPartnerLog";
 import { getMockDashboard } from "@/lib/mock-dashboard";
 
 type Props = {
   params: Promise<{ dot: string }>;
 };
-
-const SECTIONS = [
-  { id: "account", label: "Account", icon: User },
-  { id: "notifications", label: "Notifications", icon: Bell },
-  { id: "security", label: "Sign in & security", icon: Lock },
-  { id: "privacy", label: "Privacy & data", icon: Database },
-];
 
 export async function generateMetadata({ params }: Props) {
   const { dot } = await params;
@@ -47,34 +38,9 @@ export default async function SettingsPage({ params }: Props) {
       />
 
       <section className="flex-1 bg-background">
-        <div className="mx-auto grid max-w-[1400px] gap-8 px-6 py-8 lg:grid-cols-12">
-          {/* Sub-nav */}
-          <aside className="lg:col-span-3">
-            <nav className="sticky top-20 space-y-0.5 border border-line bg-surface p-3">
-              {SECTIONS.map((s) => {
-                const Icon = s.icon;
-                return (
-                  <a
-                    key={s.id}
-                    href={`#${s.id}`}
-                    className="flex items-center gap-2 px-3 py-2 text-sm text-stone-700 transition-colors hover:bg-stone-100 hover:text-stone-900"
-                  >
-                    <Icon className="h-4 w-4 text-stone-400" />
-                    {s.label}
-                  </a>
-                );
-              })}
-            </nav>
-          </aside>
-
-          <div className="space-y-10 lg:col-span-9">
+        <div className="mx-auto max-w-[1400px] space-y-12 px-6 py-8">
             {/* Account */}
-            <Section
-              id="account"
-              icon={<User className="h-4 w-4" />}
-              title="Account"
-              description="Pulled from your FMCSA filings. To change these, file an MCS-150 update — your dashboard refreshes within 24 hours."
-            >
+            <Section id="account" title="Account">
               <div className="grid gap-px border border-line bg-line md:grid-cols-2">
                 <Field label="Legal name" value={carrier.legalName} />
                 {carrier.dba && <Field label="DBA" value={carrier.dba} />}
@@ -104,7 +70,6 @@ export default async function SettingsPage({ params }: Props) {
             {/* Notifications */}
             <Section
               id="notifications"
-              icon={<Bell className="h-4 w-4" />}
               title="Notifications"
               description="Cadence per category. Default is to email when something matters and stay quiet otherwise."
             >
@@ -129,7 +94,6 @@ export default async function SettingsPage({ params }: Props) {
             {/* Sign in & security */}
             <Section
               id="security"
-              icon={<Lock className="h-4 w-4" />}
               title="Sign in & security"
               description="Email + magic link is the default. Add a recovery contact and two-factor for sensitive operations."
             >
@@ -160,7 +124,6 @@ export default async function SettingsPage({ params }: Props) {
             {/* Privacy & data */}
             <Section
               id="privacy"
-              icon={<Database className="h-4 w-4" />}
               title="Privacy & data"
               description="Your USDOT is public federal information; everything we built on top of it is yours. Export or delete at any time."
             >
@@ -171,12 +134,25 @@ export default async function SettingsPage({ params }: Props) {
                   description="One-click download of your profile, compliance history, safety records, fleet roster, inbox, and notification preferences. JSON + PDF formats. Delivered to your email."
                   actionLabel="Request export"
                 />
-                <ActionCard
-                  icon={<ExternalLink className="h-4 w-4 text-stone-600" />}
-                  title="Data partners"
-                  description="See exactly which operators (insurance brokers, factors, lenders) have received a quote request from you and the data fields they received. Revoke access for any partner."
-                  actionLabel="View access log"
-                />
+                <div className="border border-line bg-surface">
+                  <div className="flex items-start gap-3 p-5 md:flex-row md:items-center md:justify-between">
+                    <div className="flex items-start gap-3 md:items-center">
+                      <span className="inline-flex h-8 w-8 flex-none items-center justify-center border border-line bg-stone-50">
+                        <ExternalLink className="h-4 w-4 text-stone-600" />
+                      </span>
+                      <div>
+                        <p className="text-sm font-semibold text-stone-900">Data partners</p>
+                        <p className="mt-1 text-xs leading-relaxed text-stone-600 md:max-w-2xl">
+                          See exactly which operators (factors, lenders, insurance brokers) have received a quote request from you and the data fields they received. Revoke access for any partner.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="border-t border-line px-5 pb-5">
+                    <h2 className="font-display text-2xl text-stone-900 sr-only">Data partners access log</h2>
+                    <DataPartnerLog />
+                  </div>
+                </div>
                 <ActionCard
                   icon={<Trash2 className="h-4 w-4 text-red-600" />}
                   title="Delete account"
@@ -186,7 +162,6 @@ export default async function SettingsPage({ params }: Props) {
                 />
               </div>
             </Section>
-          </div>
         </div>
       </section>
     </>
@@ -195,27 +170,22 @@ export default async function SettingsPage({ params }: Props) {
 
 function Section({
   id,
-  icon,
   title,
   description,
   children,
 }: {
   id: string;
-  icon: React.ReactNode;
   title: string;
-  description: string;
+  description?: string;
   children: React.ReactNode;
 }) {
   return (
     <section id={id} className="scroll-mt-24">
-      <header className="mb-5 flex items-start gap-3">
-        <span className="inline-flex h-8 w-8 flex-none items-center justify-center border border-line bg-surface text-stone-600">
-          {icon}
-        </span>
-        <div>
-          <h2 className="font-display text-2xl text-stone-900">{title}</h2>
+      <header className="mb-4">
+        <h2 className="font-display text-2xl text-stone-900">{title}</h2>
+        {description && (
           <p className="mt-1 max-w-2xl text-sm text-stone-600">{description}</p>
-        </div>
+        )}
       </header>
       {children}
     </section>
