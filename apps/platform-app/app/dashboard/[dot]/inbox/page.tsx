@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Settings as SettingsIcon } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
 import InboxView from "@/components/dashboard/InboxView";
-import { getMockDashboard } from "@/lib/mock-dashboard";
+import { getNotificationsForDot } from "@/lib/notifications/actions";
 
 type Props = {
   params: Promise<{ dot: string }>;
@@ -19,16 +19,15 @@ export default async function InboxPage({ params }: Props) {
   const cleanDot = dot.replace(/\D/g, "");
   if (!cleanDot) notFound();
 
-  const data = getMockDashboard(cleanDot);
-  const unread = data.inbox.filter((m) => !m.read).length;
-  const important = data.inbox.filter((m) => m.important).length;
+  const notifications = await getNotificationsForDot(cleanDot);
+  const unread = notifications.filter((n) => !n.read_at).length;
 
   return (
     <>
       <PageHeader
         eyebrow="Inbox"
         title="Every email we sent you."
-        description="Notifications archived in one place. We email when something matters and stay quiet otherwise. Adjust cadence per category in Settings."
+        description="Notifications archived in one place. We email when something matters and stay quiet otherwise."
         meta={
           <>
             <span className="inline-flex items-center gap-1.5">
@@ -36,10 +35,7 @@ export default async function InboxPage({ params }: Props) {
               {unread} unread
             </span>
             <span className="inline-flex items-center gap-1.5">
-              {important} marked important
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              {data.inbox.length} total
+              {notifications.length} total
             </span>
           </>
         }
@@ -56,7 +52,7 @@ export default async function InboxPage({ params }: Props) {
 
       <section className="flex-1 bg-background">
         <div className="mx-auto max-w-[1400px] px-6 py-8">
-          <InboxView messages={data.inbox} />
+          <InboxView notifications={notifications} dot={cleanDot} />
         </div>
       </section>
     </>

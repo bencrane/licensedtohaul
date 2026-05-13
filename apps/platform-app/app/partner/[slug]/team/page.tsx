@@ -15,9 +15,9 @@ const ROLE_STYLES: Record<TeamRole, { label: string; chip: string }> = {
 };
 
 const ROLE_DESCRIPTIONS: Record<TeamRole, string> = {
-  admin: "Full access. Manages team, billing, spec adjustments.",
-  disposer: "Disposes transfers. Logs Won / Lost / Quoted / Contacted.",
-  viewer: "Read-only across transfers, pipeline, reports.",
+  admin: "Full access. Manages team, billing, factor profile.",
+  disposer: "Works deals. Logs Won / Lost / Quoted / Contacted.",
+  viewer: "Read-only across deals, pipeline, reports.",
 };
 
 export async function generateMetadata({ params }: Props) {
@@ -35,7 +35,7 @@ export default async function TeamPage({ params }: Props) {
       <PageHeader
         eyebrow="Team"
         title="Who has access to your account."
-        description="Seat-level roles control what each team member can do. Admin manages spec, billing, and team. Disposers log transfer outcomes. Viewers see the dashboard but can't change anything."
+        description="Seat-level roles control what each team member can do. Admin manages factor profile, billing, and team. Disposers work deals. Viewers see the dashboard but can't change anything."
         meta={
           <span className="inline-flex items-center gap-1.5">
             {data.team.length} active seats

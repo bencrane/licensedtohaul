@@ -35,7 +35,7 @@ export default async function PipelinePage({ params }: Props) {
       <PageHeader
         eyebrow="Overview"
         title="Pipeline"
-        description="Every transfer your team is moving forward, by disposition. Drag a card across columns to update status."
+        description="Every deal your team is moving forward, by disposition. Drag a card across columns to update status."
         meta={
           <>
             <span className="inline-flex items-center gap-1.5">
@@ -55,14 +55,14 @@ export default async function PipelinePage({ params }: Props) {
           {transfers.length === 0 ? (
             <div className="mx-auto max-w-md border border-line bg-surface px-7 py-10 text-center">
               <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-stone-500">
-                No transfers yet
+                No deals yet
               </p>
               <h2 className="font-display mt-1.5 text-xl text-stone-900">
                 Pipeline is empty.
               </h2>
               <p className="mt-2.5 text-sm leading-relaxed text-stone-600">
-                When carriers match your active specs, they appear here for
-                your team to work.
+                When carriers request a quote, they appear here for your team
+                to work.
               </p>
             </div>
           ) : (

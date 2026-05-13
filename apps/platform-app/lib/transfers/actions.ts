@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { pool } from '@/lib/audience-specs/db';
+import { pool } from '@/lib/db';
 import type { TransferDisposition, TransferRow } from './types';
 
 const VALID_DISPOSITIONS: TransferDisposition[] = [
@@ -93,6 +93,6 @@ export async function updateTransferDisposition(
   );
 
   revalidatePath(`/partner/${slug}/pipeline`);
-  revalidatePath(`/partner/${slug}/transfers`);
+  revalidatePath(`/partner/${slug}/deals`);
   return { ok: true };
 }

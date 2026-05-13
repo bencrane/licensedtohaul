@@ -70,7 +70,7 @@ export default function MasterInbox({ slug, threads }: Props) {
           return (
             <li key={t.transfer_id}>
               <Link
-                href={`/partner/${slug}/transfers/${t.transfer_id}`}
+                href={`/partner/${slug}/deals/${t.transfer_id}`}
                 className={`group flex items-start gap-4 px-5 py-4 transition-colors hover:bg-stone-50/60 ${
                   hasUnread ? "border-l-2 border-l-orange-500 pl-[18px]" : ""
                 }`}
