@@ -3,8 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { Pool } from "pg";
 
 function getPool(): Pool {
-  const connString = process.env.HQX_DB_URL_POOLED;
-  if (!connString) throw new Error("HQX_DB_URL_POOLED not set");
+  const connString = process.env.LTH_DB_POOLED_URL;
+  if (!connString) throw new Error("LTH_DB_POOLED_URL not set");
   return new Pool({ connectionString: connString, max: 2 });
 }
 
@@ -26,9 +26,9 @@ export default async function RootPage() {
   const { rows } = await pool().query<{ slug: string | null; category: string; usdot: string | null }>(
     `
     SELECT o.slug, o.category, o.usdot::text AS usdot
-      FROM lth.users u
-      JOIN lth.organization_memberships m ON m.user_id = u.id AND m.status = 'active'
-      JOIN lth.organizations o ON o.id = m.organization_id
+      FROM users u
+      JOIN organization_memberships m ON m.user_id = u.id AND m.status = 'active'
+      JOIN organizations o ON o.id = m.organization_id
      WHERE u.auth_user_id = $1
      ORDER BY m.created_at ASC
      LIMIT 1

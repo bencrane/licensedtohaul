@@ -16,7 +16,7 @@ beforeAll(async () => {
   client = harness.client;
   cleanup = harness.cleanup;
   vi.stubEnv('LTH_SCHEMA', schemaName);
-  vi.stubEnv('HQX_DB_URL_POOLED', process.env.HQX_DB_URL_POOLED!);
+  vi.stubEnv('LTH_DB_POOLED_URL', process.env.LTH_DB_POOLED_URL!);
 
   // Seed billing event
   const { rows: evtRows } = await client.query<{ id: string }>(
@@ -49,7 +49,7 @@ describe('emitPendingBillingEvents', () => {
     const { Pool } = await import('pg');
 
     // Pass client's connection string as pool so the harness schema is used
-    const pool = new Pool({ connectionString: process.env.HQX_DB_URL_POOLED!, max: 1 });
+    const pool = new Pool({ connectionString: process.env.LTH_DB_POOLED_URL!, max: 1 });
 
     const result = await emitPendingBillingEvents({ pool });
     await pool.end();

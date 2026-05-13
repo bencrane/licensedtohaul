@@ -1,7 +1,6 @@
--- Licensed to Haul: initial schema (lth.*)
+-- Licensed to Haul: initial schema (public.*)
 --
--- Lives in the same Supabase project as hq-x (HQX_DB_URL_POOLED).
--- Apply via: doppler run -- psql "$HQX_DB_URL_POOLED" -f 001_create_lth_schema.sql
+-- Apply via: doppler run -- psql "$LTH_DB_POOLED_URL" -f 001_create_lth_schema.sql
 --
 -- Conventions:
 --   - One organizations table, flattened (no `kind` discriminator).
@@ -12,7 +11,7 @@
 --   - User-to-user message threads are deliberately deferred — the v1 UI is
 --     system notifications (inbox archive) + CRM transfers, no DMs.
 
-CREATE SCHEMA IF NOT EXISTS lth;
+
 
 ------------------------------------------------------------------------
 -- Organizations
@@ -24,7 +23,7 @@ CREATE SCHEMA IF NOT EXISTS lth;
 --
 -- Canonical category values: carrier, broker, factoring, insurance, shipper.
 -- Add more by INSERT — no migration needed.
-CREATE TABLE lth.organizations (
+CREATE TABLE organizations (
   id                  uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   name                text NOT NULL,
   slug                text UNIQUE,
@@ -48,7 +47,7 @@ CREATE TABLE lth.organizations (
 ------------------------------------------------------------------------
 -- Mirror of auth.users (Supabase). One row per platform user.
 -- Auto-created via trigger on auth.users insert (see end of file).
-CREATE TABLE lth.users (
+CREATE TABLE users (
   id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   auth_user_id  uuid NOT NULL UNIQUE REFERENCES auth.users(id) ON DELETE CASCADE,
   email         text NOT NULL,
@@ -59,9 +58,9 @@ CREATE TABLE lth.users (
 ------------------------------------------------------------------------
 -- Organization memberships
 ------------------------------------------------------------------------
-CREATE TABLE lth.organization_memberships (
-  user_id          uuid NOT NULL REFERENCES lth.users(id) ON DELETE CASCADE,
-  organization_id  uuid NOT NULL REFERENCES lth.organizations(id) ON DELETE CASCADE,
+CREATE TABLE organization_memberships (
+  user_id          uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  organization_id  uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
   role             text NOT NULL CHECK (role IN ('owner','admin','member')),
   status           text NOT NULL DEFAULT 'active' CHECK (status IN ('active','revoked')),
   created_at       timestamptz NOT NULL DEFAULT now(),
@@ -69,28 +68,28 @@ CREATE TABLE lth.organization_memberships (
 );
 
 CREATE INDEX organization_memberships_org_idx
-  ON lth.organization_memberships (organization_id);
+  ON organization_memberships (organization_id);
 
 ------------------------------------------------------------------------
 -- Invitations
 ------------------------------------------------------------------------
 -- Cold-email magic-link onboarding. The URL carries a raw token; we store
 -- only the SHA-256 hash. When consumed, links to the auth user that claimed it.
-CREATE TABLE lth.invitations (
+CREATE TABLE invitations (
   id                   uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   token_hash           text NOT NULL UNIQUE,
   target_email         text NOT NULL,
   target_usdot         bigint,
   target_role          text NOT NULL DEFAULT 'owner',
-  invited_by_user_id   uuid REFERENCES lth.users(id),
+  invited_by_user_id   uuid REFERENCES users(id),
   expires_at           timestamptz NOT NULL,
   consumed_at          timestamptz,
-  consumed_by_user_id  uuid REFERENCES lth.users(id),
+  consumed_by_user_id  uuid REFERENCES users(id),
   created_at           timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE INDEX invitations_target_email_idx ON lth.invitations (target_email);
-CREATE INDEX invitations_expires_at_idx   ON lth.invitations (expires_at)
+CREATE INDEX invitations_target_email_idx ON invitations (target_email);
+CREATE INDEX invitations_expires_at_idx   ON invitations (expires_at)
   WHERE consumed_at IS NULL;
 
 ------------------------------------------------------------------------
@@ -98,10 +97,10 @@ CREATE INDEX invitations_expires_at_idx   ON lth.invitations (expires_at)
 ------------------------------------------------------------------------
 -- When a partner clicks "Connect" on a carrier, a row goes here as 'pending'.
 -- A corresponding notification surfaces to the carrier with accept/decline.
-CREATE TABLE lth.connections (
+CREATE TABLE connections (
   id                  uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  initiating_org_id   uuid NOT NULL REFERENCES lth.organizations(id) ON DELETE CASCADE,
-  receiving_org_id    uuid NOT NULL REFERENCES lth.organizations(id) ON DELETE CASCADE,
+  initiating_org_id   uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  receiving_org_id    uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
   status              text NOT NULL DEFAULT 'pending'
                       CHECK (status IN ('pending','accepted','declined','revoked')),
   message_to_carrier  text,
@@ -110,7 +109,7 @@ CREATE TABLE lth.connections (
   UNIQUE (initiating_org_id, receiving_org_id)
 );
 
-CREATE INDEX connections_receiving_org_idx ON lth.connections (receiving_org_id, status);
+CREATE INDEX connections_receiving_org_idx ON connections (receiving_org_id, status);
 
 ------------------------------------------------------------------------
 -- Notifications (carrier inbox archive + partner activity feed)
@@ -120,9 +119,9 @@ CREATE INDEX connections_receiving_org_idx ON lth.connections (receiving_org_id,
 --   authority, system, connection.
 -- `emailed_at` records when the corresponding Resend email went out
 -- (NULL = in-app only).
-CREATE TABLE lth.notifications (
+CREATE TABLE notifications (
   id                 uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  recipient_user_id  uuid NOT NULL REFERENCES lth.users(id) ON DELETE CASCADE,
+  recipient_user_id  uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   category           text NOT NULL,
   subject            text NOT NULL,
   body               text NOT NULL,
@@ -136,15 +135,15 @@ CREATE TABLE lth.notifications (
 );
 
 CREATE INDEX notifications_recipient_idx
-  ON lth.notifications (recipient_user_id, created_at DESC);
+  ON notifications (recipient_user_id, created_at DESC);
 CREATE INDEX notifications_unread_idx
-  ON lth.notifications (recipient_user_id) WHERE is_read = false;
+  ON notifications (recipient_user_id) WHERE is_read = false;
 
 ------------------------------------------------------------------------
 -- Notification preferences (per user, per category)
 ------------------------------------------------------------------------
-CREATE TABLE lth.notification_preferences (
-  user_id   uuid NOT NULL REFERENCES lth.users(id) ON DELETE CASCADE,
+CREATE TABLE notification_preferences (
+  user_id   uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   category  text NOT NULL,
   cadence   text NOT NULL CHECK (cadence IN ('immediate','daily_digest','weekly_digest','off')),
   PRIMARY KEY (user_id, category)
@@ -155,10 +154,10 @@ CREATE TABLE lth.notification_preferences (
 ------------------------------------------------------------------------
 -- Each row = one carrier match in a partner's funnel.
 -- `match_criteria` / `signals` / `contact_snapshot` captured at match time.
-CREATE TABLE lth.transfers (
+CREATE TABLE transfers (
   id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  partner_org_id    uuid NOT NULL REFERENCES lth.organizations(id) ON DELETE CASCADE,
-  carrier_org_id    uuid NOT NULL REFERENCES lth.organizations(id) ON DELETE CASCADE,
+  partner_org_id    uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  carrier_org_id    uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
   audience_spec_id  uuid,
   disposition       text NOT NULL DEFAULT 'new'
                     CHECK (disposition IN ('new','contacted','quoted','won','lost','rejected')),
@@ -172,16 +171,16 @@ CREATE TABLE lth.transfers (
 );
 
 CREATE INDEX transfers_partner_idx
-  ON lth.transfers (partner_org_id, disposition, created_at DESC);
+  ON transfers (partner_org_id, disposition, created_at DESC);
 CREATE INDEX transfers_carrier_idx
-  ON lth.transfers (carrier_org_id);
+  ON transfers (carrier_org_id);
 
 ------------------------------------------------------------------------
 -- Subscriptions (billing — partners only in practice, but no constraint)
 ------------------------------------------------------------------------
-CREATE TABLE lth.subscriptions (
+CREATE TABLE subscriptions (
   id                      uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  organization_id         uuid NOT NULL REFERENCES lth.organizations(id) ON DELETE CASCADE,
+  organization_id         uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
   stripe_subscription_id  text UNIQUE,
   plan                    text NOT NULL,
   status                  text NOT NULL,
@@ -190,14 +189,14 @@ CREATE TABLE lth.subscriptions (
   created_at              timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE INDEX subscriptions_org_idx ON lth.subscriptions (organization_id);
+CREATE INDEX subscriptions_org_idx ON subscriptions (organization_id);
 
 ------------------------------------------------------------------------
 -- Audit log
 ------------------------------------------------------------------------
-CREATE TABLE lth.audit_log (
+CREATE TABLE audit_log (
   id             bigserial PRIMARY KEY,
-  actor_user_id  uuid REFERENCES lth.users(id) ON DELETE SET NULL,
+  actor_user_id  uuid REFERENCES users(id) ON DELETE SET NULL,
   action         text NOT NULL,
   target_type    text,
   target_id      text,
@@ -205,30 +204,30 @@ CREATE TABLE lth.audit_log (
   created_at     timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE INDEX audit_log_actor_idx   ON lth.audit_log (actor_user_id, created_at DESC);
-CREATE INDEX audit_log_created_idx ON lth.audit_log (created_at DESC);
+CREATE INDEX audit_log_actor_idx   ON audit_log (actor_user_id, created_at DESC);
+CREATE INDEX audit_log_created_idx ON audit_log (created_at DESC);
 
 ------------------------------------------------------------------------
--- Auto-create lth.users on auth.users insert
+-- Auto-create users on auth.users insert
 ------------------------------------------------------------------------
--- SECURITY DEFINER so the trigger can write to lth.* regardless of caller.
+-- SECURITY DEFINER so the trigger can write to * regardless of caller.
 -- Idempotent: skips if the auth_user_id is already mirrored.
-CREATE OR REPLACE FUNCTION lth.handle_new_auth_user()
+CREATE OR REPLACE FUNCTION handle_new_auth_user()
 RETURNS TRIGGER
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = lth, public
+SET search_path = public
 AS $$
 BEGIN
-  INSERT INTO lth.users (auth_user_id, email)
+  INSERT INTO users (auth_user_id, email)
   VALUES (NEW.id, NEW.email)
   ON CONFLICT (auth_user_id) DO NOTHING;
   RETURN NEW;
 END;
 $$;
 
-DROP TRIGGER IF EXISTS on_auth_user_created_for_lth ON auth.users;
-CREATE TRIGGER on_auth_user_created_for_lth
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW
-  EXECUTE FUNCTION lth.handle_new_auth_user();
+  EXECUTE FUNCTION handle_new_auth_user();

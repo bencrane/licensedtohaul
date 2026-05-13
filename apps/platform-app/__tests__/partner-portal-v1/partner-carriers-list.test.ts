@@ -13,7 +13,7 @@ beforeAll(async () => {
   client = harness.client;
   cleanup = harness.cleanup;
   vi.stubEnv('LTH_SCHEMA', schemaName);
-  vi.stubEnv('HQX_DB_URL_POOLED', process.env.HQX_DB_URL_POOLED!);
+  vi.stubEnv('LTH_DB_POOLED_URL', process.env.LTH_DB_POOLED_URL!);
 
   // Seed: 3 active + 1 revoked FoR rows for apex-capital
   for (const dot of ['1111111', '2222222', '3333333']) {
@@ -38,7 +38,7 @@ afterAll(async () => {
 describe('partner carriers list', () => {
   it('returns 3 active and 1 revoked carrier for apex-capital', async () => {
     const { Pool } = await import('pg');
-    const pool = new Pool({ connectionString: process.env.HQX_DB_URL_POOLED!, max: 1 });
+    const pool = new Pool({ connectionString: process.env.LTH_DB_POOLED_URL!, max: 1 });
 
     try {
       const { rows } = await pool.query<{

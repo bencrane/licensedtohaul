@@ -5,8 +5,8 @@ import ComposeForm from "@/components/deal-room/ComposeForm";
 import { getDealRoomMessages } from "@/lib/deal-room/actions";
 
 function getPool(): Pool {
-  const connString = process.env.HQX_DB_URL_POOLED;
-  if (!connString) throw new Error("HQX_DB_URL_POOLED not set");
+  const connString = process.env.LTH_DB_POOLED_URL;
+  if (!connString) throw new Error("LTH_DB_POOLED_URL not set");
   return new Pool({ connectionString: connString, max: 2 });
 }
 
@@ -38,8 +38,6 @@ export default async function PartnerDealRoomPage({ params }: Props) {
   const { slug, dot } = await params;
   if (!slug || !dot) notFound();
 
-  const SCHEMA = process.env.LTH_SCHEMA ?? "lth";
-
   // Load FoR + NOA envelope state
   const { rows: forRows } = await pool().query<{
     id: string;
@@ -48,8 +46,8 @@ export default async function PartnerDealRoomPage({ params }: Props) {
     noa_state: string | null;
   }>(
     `SELECT f.id, f.status, f.assigned_at, e.state AS noa_state
-     FROM "${SCHEMA}".factor_of_record f
-     LEFT JOIN "${SCHEMA}".noa_envelopes e ON e.id = f.noa_envelope_id
+     FROM factor_of_record f
+     LEFT JOIN noa_envelopes e ON e.id = f.noa_envelope_id
      WHERE f.factor_slug = $1 AND f.carrier_dot = $2
      ORDER BY f.assigned_at DESC
      LIMIT 1`,

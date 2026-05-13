@@ -6,8 +6,8 @@ import { getDealRoomMessages } from "@/lib/deal-room/actions";
 import { getFactorDisplayName } from "@/lib/factor-of-record/types";
 
 function getPool(): Pool {
-  const connString = process.env.HQX_DB_URL_POOLED;
-  if (!connString) throw new Error("HQX_DB_URL_POOLED not set");
+  const connString = process.env.LTH_DB_POOLED_URL;
+  if (!connString) throw new Error("LTH_DB_POOLED_URL not set");
   return new Pool({ connectionString: connString, max: 2 });
 }
 
@@ -32,8 +32,7 @@ export default async function CarrierDealRoomPage({ params }: Props) {
   const cleanDot = dot.replace(/\D/g, "");
   if (!cleanDot || !factorSlug) notFound();
 
-  const SCHEMA = process.env.LTH_SCHEMA ?? "lth";
-  const factorName = getFactorDisplayName(factorSlug);
+    const factorName = getFactorDisplayName(factorSlug);
 
   // Load NOA state
   const { rows: envRows } = await pool().query<{
@@ -41,8 +40,8 @@ export default async function CarrierDealRoomPage({ params }: Props) {
     provider: string;
   }>(
     `SELECT e.state, e.provider
-     FROM "${SCHEMA}".noa_envelopes e
-     JOIN "${SCHEMA}".factor_of_record f ON f.noa_envelope_id = e.id
+     FROM noa_envelopes e
+     JOIN factor_of_record f ON f.noa_envelope_id = e.id
      WHERE f.carrier_dot = $1 AND f.factor_slug = $2 AND f.status = 'active'
      LIMIT 1`,
     [cleanDot, factorSlug],

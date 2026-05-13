@@ -2,8 +2,8 @@ import { Pool } from 'pg';
 import type { RecordDisbursementInput, DisbursementRow } from './types';
 
 function getPool(): Pool {
-  const connString = process.env.HQX_DB_URL_POOLED;
-  if (!connString) throw new Error('HQX_DB_URL_POOLED not set');
+  const connString = process.env.LTH_DB_POOLED_URL;
+  if (!connString) throw new Error('LTH_DB_POOLED_URL not set');
   return new Pool({ connectionString: connString, max: 4 });
 }
 
@@ -17,14 +17,13 @@ export async function recordDisbursement(
   input: RecordDisbursementInput,
   opts?: { pool?: Pool },
 ): Promise<{ disbursementId: string }> {
-  const SCHEMA = process.env.LTH_SCHEMA ?? 'lth';
-  const db = opts?.pool ?? defaultPool();
+    const db = opts?.pool ?? defaultPool();
   const amountCents = Math.round(input.amount * 100);
   const source = input.source ?? 'manual';
 
   // Insert disbursement row
   const { rows: disbRows } = await db.query<{ id: string }>(
-    `INSERT INTO "${SCHEMA}".disbursements
+    `INSERT INTO disbursements
        (factor_slug, carrier_dot, amount_cents, disbursed_at, reference_id, source, status)
      VALUES ($1, $2, $3, $4, $5, $6, 'observed')
      RETURNING id`,
@@ -34,7 +33,7 @@ export async function recordDisbursement(
 
   // Queue a billing event for the disbursement (emitted=false, async worker picks it up)
   await db.query(
-    `INSERT INTO "${SCHEMA}".factor_billing_events
+    `INSERT INTO factor_billing_events
        (factor_slug, event_name, payload, emitted)
      VALUES ($1, 'disbursement.observed', $2::jsonb, false)`,
     [
@@ -54,15 +53,14 @@ export async function recordDisbursement(
 
 export async function getDisbursementsForFactor(
   factorSlug: string,
-  opts?: { pool?: Pool; schema?: string },
+  opts?: { pool?: Pool;  },
 ): Promise<DisbursementRow[]> {
-  const SCHEMA = opts?.schema ?? process.env.LTH_SCHEMA ?? 'lth';
-  const db = opts?.pool ?? defaultPool();
+    const db = opts?.pool ?? defaultPool();
 
   const { rows } = await db.query<DisbursementRow>(
     `SELECT id, factor_slug, carrier_dot, amount_cents, disbursed_at::text AS disbursed_at,
             reference_id, source, status, observed_at
-     FROM "${SCHEMA}".disbursements
+     FROM disbursements
      WHERE factor_slug = $1
      ORDER BY disbursed_at DESC, observed_at DESC`,
     [factorSlug],
@@ -74,15 +72,14 @@ export async function getDisbursementsInWindow(
   factorSlug: string,
   windowStart: string,
   windowEnd: string,
-  opts?: { pool?: Pool; schema?: string },
+  opts?: { pool?: Pool;  },
 ): Promise<DisbursementRow[]> {
-  const SCHEMA = opts?.schema ?? process.env.LTH_SCHEMA ?? 'lth';
-  const db = opts?.pool ?? defaultPool();
+    const db = opts?.pool ?? defaultPool();
 
   const { rows } = await db.query<DisbursementRow>(
     `SELECT id, factor_slug, carrier_dot, amount_cents, disbursed_at::text AS disbursed_at,
             reference_id, source, status, observed_at
-     FROM "${SCHEMA}".disbursements
+     FROM disbursements
      WHERE factor_slug = $1
        AND disbursed_at >= $2
        AND disbursed_at <= $3

@@ -14,8 +14,8 @@ export interface ReconciliationResult {
 }
 
 function getPool(): Pool {
-  const connString = process.env.HQX_DB_URL_POOLED;
-  if (!connString) throw new Error('HQX_DB_URL_POOLED not set');
+  const connString = process.env.LTH_DB_POOLED_URL;
+  if (!connString) throw new Error('LTH_DB_POOLED_URL not set');
   return new Pool({ connectionString: connString, max: 2 });
 }
 
@@ -32,10 +32,9 @@ function defaultPool(): Pool {
 export async function getReconciliation(
   factorSlug: string,
   asOf: Date = new Date(),
-  opts?: { pool?: Pool; schema?: string },
+  opts?: { pool?: Pool;  },
 ): Promise<ReconciliationResult> {
-  const SCHEMA = opts?.schema ?? process.env.LTH_SCHEMA ?? 'lth';
-  const db = opts?.pool ?? defaultPool();
+    const db = opts?.pool ?? defaultPool();
 
   // Load billing config
   const { rows: configRows } = await db.query<{
@@ -44,7 +43,7 @@ export async function getReconciliation(
     billing_cycle_anchor: string;
   }>(
     `SELECT platform_fee_cents, disbursement_bps, billing_cycle_anchor::text
-     FROM "${SCHEMA}".factor_billing_config
+     FROM factor_billing_config
      WHERE factor_slug = $1`,
     [factorSlug],
   );
@@ -86,7 +85,6 @@ export async function getReconciliation(
   // Fetch disbursements in window
   const disbursements = await getDisbursementsInWindow(factorSlug, windowStartStr, windowEndStr, {
     pool: db,
-    schema: SCHEMA,
   });
 
   const totalDisbursedCents = disbursements.reduce((sum, d) => sum + Number(d.amount_cents), 0);

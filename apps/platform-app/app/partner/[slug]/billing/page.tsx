@@ -3,8 +3,8 @@ import { Pool } from "pg";
 import { ExternalLink } from "lucide-react";
 
 function getPool(): Pool {
-  const connString = process.env.HQX_DB_URL_POOLED;
-  if (!connString) throw new Error("HQX_DB_URL_POOLED not set");
+  const connString = process.env.LTH_DB_POOLED_URL;
+  if (!connString) throw new Error("LTH_DB_POOLED_URL not set");
   return new Pool({ connectionString: connString, max: 2 });
 }
 
@@ -27,8 +27,6 @@ export default async function BillingPage({ params }: Props) {
   const { slug } = await params;
   if (!slug) notFound();
 
-  const SCHEMA = process.env.LTH_SCHEMA ?? "lth";
-
   // Load Stripe customer info
   let stripeCustomerId: string | null = null;
   let stripeSubscriptionId: string | null = null;
@@ -41,7 +39,7 @@ export default async function BillingPage({ params }: Props) {
       stripe_subscription_id: string | null;
     }>(
       `SELECT stripe_customer_id, stripe_subscription_id
-       FROM "${SCHEMA}".factor_stripe_customers
+       FROM factor_stripe_customers
        WHERE factor_slug = $1`,
       [slug],
     );
@@ -53,7 +51,7 @@ export default async function BillingPage({ params }: Props) {
       disbursement_bps: string;
     }>(
       `SELECT platform_fee_cents, disbursement_bps
-       FROM "${SCHEMA}".factor_billing_config
+       FROM factor_billing_config
        WHERE factor_slug = $1`,
       [slug],
     );

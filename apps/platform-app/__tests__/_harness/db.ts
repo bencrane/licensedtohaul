@@ -20,8 +20,8 @@ export async function createTestSchema(): Promise<{
     throw new Error(`Invalid generated schema name: ${schemaName}`);
   }
 
-  const connString = process.env.HQX_DB_URL_POOLED;
-  if (!connString) throw new Error('HQX_DB_URL_POOLED not set');
+  const connString = process.env.LTH_DB_POOLED_URL;
+  if (!connString) throw new Error('LTH_DB_POOLED_URL not set');
 
   const client = new Client({ connectionString: connString });
   await client.connect();

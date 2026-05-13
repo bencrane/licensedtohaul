@@ -21,13 +21,13 @@ beforeAll(async () => {
   client = harness.client;
   cleanup = harness.cleanup;
   vi.stubEnv('LTH_SCHEMA', schemaName);
-  vi.stubEnv('HQX_DB_URL_POOLED', process.env.HQX_DB_URL_POOLED!);
+  vi.stubEnv('LTH_DB_POOLED_URL', process.env.LTH_DB_POOLED_URL!);
 
   // Set up: onboard factor with real Stripe objects (same as Test 11)
   try {
     const { onboardFactorBilling } = await import('@/lib/billing/onboarding');
     const { Pool } = await import('pg');
-    const pool = new Pool({ connectionString: process.env.HQX_DB_URL_POOLED!, max: 1 });
+    const pool = new Pool({ connectionString: process.env.LTH_DB_POOLED_URL!, max: 1 });
 
     const result = await onboardFactorBilling(
       {
@@ -73,7 +73,7 @@ afterAll(async () => {
 describe('emitPendingBillingEvents — disbursement.observed', () => {
   it.skipIf(SKIP_TEST)('emits 3 disbursement events and marks emitted=true', async () => {
     const { Pool } = await import('pg');
-    const pool = new Pool({ connectionString: process.env.HQX_DB_URL_POOLED!, max: 1 });
+    const pool = new Pool({ connectionString: process.env.LTH_DB_POOLED_URL!, max: 1 });
 
     try {
       // Reset billing client to use real Stripe

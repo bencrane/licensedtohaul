@@ -2,8 +2,8 @@ import { notFound } from "next/navigation";
 import { Pool } from "pg";
 
 function getPool(): Pool {
-  const connString = process.env.HQX_DB_URL_POOLED;
-  if (!connString) throw new Error("HQX_DB_URL_POOLED not set");
+  const connString = process.env.LTH_DB_POOLED_URL;
+  if (!connString) throw new Error("LTH_DB_POOLED_URL not set");
   return new Pool({ connectionString: connString, max: 2 });
 }
 
@@ -28,11 +28,9 @@ export default async function PartnerOverviewPage({ params }: Props) {
   const { slug } = await params;
   if (!slug) notFound();
 
-  const SCHEMA = process.env.LTH_SCHEMA ?? "lth";
-
   // Active carrier count
   const { rows: forRows } = await pool().query<{ count: string }>(
-    `SELECT COUNT(*) AS count FROM "${SCHEMA}".factor_of_record
+    `SELECT COUNT(*) AS count FROM factor_of_record
      WHERE factor_slug = $1 AND status = 'active'`,
     [slug],
   );
@@ -47,7 +45,7 @@ export default async function PartnerOverviewPage({ params }: Props) {
 
   const { rows: disbRows } = await pool().query<{ total_cents: string; count: string }>(
     `SELECT COALESCE(SUM(amount_cents), 0) AS total_cents, COUNT(*) AS count
-     FROM "${SCHEMA}".disbursements
+     FROM disbursements
      WHERE factor_slug = $1
        AND disbursed_at >= $2
        AND disbursed_at <= $3

@@ -2,8 +2,8 @@ import { notFound } from "next/navigation";
 import { Pool } from "pg";
 
 function getPool(): Pool {
-  const connString = process.env.HQX_DB_URL_POOLED;
-  if (!connString) throw new Error("HQX_DB_URL_POOLED not set");
+  const connString = process.env.LTH_DB_POOLED_URL;
+  if (!connString) throw new Error("LTH_DB_POOLED_URL not set");
   return new Pool({ connectionString: connString, max: 2 });
 }
 
@@ -39,9 +39,9 @@ export default async function TeamPage({ params }: Props) {
   try {
     const { rows } = await pool().query<SeatRow>(
       `SELECT m.user_id::text, u.email, m.role, m.created_at AS joined_at
-       FROM lth.organization_memberships m
-       JOIN lth.users u ON u.id = m.user_id
-       JOIN lth.organizations o ON o.id = m.organization_id AND o.slug = $1
+       FROM organization_memberships m
+       JOIN users u ON u.id = m.user_id
+       JOIN organizations o ON o.id = m.organization_id AND o.slug = $1
        WHERE m.status = 'active'
        ORDER BY m.created_at ASC`,
       [slug],
