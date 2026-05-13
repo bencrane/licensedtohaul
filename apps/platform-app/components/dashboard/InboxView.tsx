@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useSyncExternalStore } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import {
   Archive,
@@ -17,8 +17,17 @@ import {
   BadgeCheck,
   Settings as SettingsIcon,
 } from "lucide-react";
-import type { InboxCategory, InboxMessage } from "@/lib/mock-dashboard";
-import { subscribeToInbox, getInboxSnapshot } from "@/lib/inbox-store";
+import type { Notification } from "@/lib/notifications/actions";
+
+type InboxCategory =
+  | "compliance"
+  | "freight"
+  | "insurance"
+  | "financing"
+  | "equipment"
+  | "safety"
+  | "authority"
+  | "system";
 
 const CATEGORY_STYLES: Record<
   InboxCategory,
@@ -66,36 +75,54 @@ const CATEGORY_STYLES: Record<
   },
 };
 
-type Filter = "all" | "unread" | "important" | InboxCategory;
+function getStyle(category: string) {
+  return (
+    CATEGORY_STYLES[category as InboxCategory] ?? CATEGORY_STYLES.system
+  );
+}
+
+function formatRelative(iso: string): string {
+  const d = new Date(iso);
+  return d.toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+type Filter = "all" | "unread" | "financing" | InboxCategory;
 
 const FILTER_OPTIONS: { value: Filter; label: string }[] = [
   { value: "all", label: "All" },
   { value: "unread", label: "Unread" },
-  { value: "important", label: "Important" },
-  { value: "compliance", label: "Compliance" },
   { value: "financing", label: "Financing" },
+  { value: "compliance", label: "Compliance" },
   { value: "safety", label: "Safety" },
 ];
 
-export default function InboxView({ messages }: { messages: InboxMessage[] }) {
-  // Merge in-memory submissions (client-side store) with server-seeded messages
-  const storeMessages = useSyncExternalStore(subscribeToInbox, getInboxSnapshot);
-  const allMessages = useMemo(() => [...storeMessages, ...messages], [storeMessages, messages]);
-
+export default function InboxView({
+  notifications,
+  dot,
+}: {
+  notifications: Notification[];
+  dot: string;
+}) {
   const [filter, setFilter] = useState<Filter>("all");
-  const [selectedId, setSelectedId] = useState<string>(allMessages[0]?.id ?? "");
+  const [selectedId, setSelectedId] = useState<string>(
+    notifications[0]?.id ?? "",
+  );
 
   const filtered = useMemo(() => {
-    return allMessages.filter((m) => {
+    return notifications.filter((n) => {
       if (filter === "all") return true;
-      if (filter === "unread") return !m.read;
-      if (filter === "important") return m.important;
-      return m.category === filter;
+      if (filter === "unread") return !n.read_at;
+      return n.category === filter;
     });
-  }, [allMessages, filter]);
+  }, [notifications, filter]);
 
   const selected = useMemo(
-    () => filtered.find((m) => m.id === selectedId) ?? filtered[0],
+    () => filtered.find((n) => n.id === selectedId) ?? filtered[0],
     [filtered, selectedId],
   );
 
@@ -106,11 +133,10 @@ export default function InboxView({ messages }: { messages: InboxMessage[] }) {
         <div className="flex items-center gap-1 overflow-x-auto border-b border-line bg-stone-50/40 px-4 py-2 text-[10px] font-mono uppercase tracking-[0.14em] text-stone-500">
           {FILTER_OPTIONS.map((opt) => {
             const active = filter === opt.value;
-            const count = allMessages.filter((m) => {
+            const count = notifications.filter((n) => {
               if (opt.value === "all") return true;
-              if (opt.value === "unread") return !m.read;
-              if (opt.value === "important") return m.important;
-              return m.category === opt.value;
+              if (opt.value === "unread") return !n.read_at;
+              return n.category === opt.value;
             }).length;
             return (
               <button
@@ -136,17 +162,18 @@ export default function InboxView({ messages }: { messages: InboxMessage[] }) {
               Nothing here under this filter.
             </li>
           )}
-          {filtered.map((m) => {
-            const style = CATEGORY_STYLES[m.category];
-            const isSelected = m.id === selected?.id;
+          {filtered.map((n) => {
+            const style = getStyle(n.category);
+            const isSelected = n.id === selected?.id;
+            const isUnread = !n.read_at;
             return (
-              <li key={m.id}>
+              <li key={n.id}>
                 <button
                   type="button"
-                  onClick={() => setSelectedId(m.id)}
+                  onClick={() => setSelectedId(n.id)}
                   className={`flex w-full flex-col gap-1.5 border-b border-line px-5 py-4 text-left transition-colors ${
                     isSelected ? "bg-orange-50/60" : "hover:bg-stone-50/60"
-                  } ${!m.read ? "border-l-2 border-l-orange-500 pl-[18px]" : ""}`}
+                  } ${isUnread ? "border-l-2 border-l-orange-500 pl-[18px]" : ""}`}
                 >
                   <div className="flex items-center justify-between gap-2">
                     <span
@@ -155,21 +182,22 @@ export default function InboxView({ messages }: { messages: InboxMessage[] }) {
                       {style.icon}
                       {style.label}
                     </span>
-                    <div className="flex items-center gap-2">
-                      {m.important && <Star className="h-3 w-3 fill-amber-400 text-amber-400" />}
-                      <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-stone-500">
-                        {m.relativeTime}
-                      </span>
-                    </div>
+                    <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-stone-500">
+                      {formatRelative(n.created_at)}
+                    </span>
                   </div>
                   <p
                     className={`text-sm leading-snug ${
-                      m.read ? "text-stone-700" : "font-semibold text-stone-900"
+                      isUnread
+                        ? "font-semibold text-stone-900"
+                        : "text-stone-700"
                     }`}
                   >
-                    {m.subject}
+                    {n.subject}
                   </p>
-                  <p className="line-clamp-2 text-xs text-stone-500">{m.preview}</p>
+                  <p className="line-clamp-2 text-xs text-stone-500">
+                    {n.body}
+                  </p>
                 </button>
               </li>
             );
@@ -186,17 +214,11 @@ export default function InboxView({ messages }: { messages: InboxMessage[] }) {
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
                     <span
-                      className={`inline-flex items-center gap-1.5 border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] ${CATEGORY_STYLES[selected.category].chip}`}
+                      className={`inline-flex items-center gap-1.5 border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] ${getStyle(selected.category).chip}`}
                     >
-                      {CATEGORY_STYLES[selected.category].icon}
-                      {CATEGORY_STYLES[selected.category].label}
+                      {getStyle(selected.category).icon}
+                      {getStyle(selected.category).label}
                     </span>
-                    {selected.important && (
-                      <span className="inline-flex items-center gap-1 border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-amber-800">
-                        <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-                        Important
-                      </span>
-                    )}
                   </div>
                   <h2 className="font-display mt-3 text-2xl text-stone-900">
                     {selected.subject}
@@ -204,19 +226,12 @@ export default function InboxView({ messages }: { messages: InboxMessage[] }) {
                   <p className="mt-2 text-xs text-stone-500">
                     From{" "}
                     <span className="font-mono text-stone-700">
-                      {selected.fromName} &lt;{selected.fromEmail}&gt;
+                      {selected.from_name} &lt;{selected.from_email}&gt;
                     </span>{" "}
-                    · {selected.relativeTime}
+                    · {formatRelative(selected.created_at)}
                   </p>
                 </div>
                 <div className="flex gap-1">
-                  <IconButton title={selected.important ? "Unstar" : "Mark important"}>
-                    {selected.important ? (
-                      <StarOff className="h-4 w-4" />
-                    ) : (
-                      <Star className="h-4 w-4" />
-                    )}
-                  </IconButton>
                   <IconButton title="Archive">
                     <Archive className="h-4 w-4" />
                   </IconButton>
@@ -236,13 +251,13 @@ export default function InboxView({ messages }: { messages: InboxMessage[] }) {
                 ))}
               </div>
 
-              {selected.primaryAction && (
+              {selected.primary_action && (
                 <div className="mt-8 border-t border-line pt-6">
                   <Link
-                    href={selected.primaryAction.href}
+                    href={selected.primary_action.href}
                     className="inline-flex items-center gap-2 bg-orange-600 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-orange-700"
                   >
-                    {selected.primaryAction.label}
+                    {selected.primary_action.label}
                     <ArrowRight className="h-4 w-4" />
                   </Link>
                 </div>
@@ -251,7 +266,9 @@ export default function InboxView({ messages }: { messages: InboxMessage[] }) {
           </article>
         ) : (
           <div className="flex h-full items-center justify-center p-12 text-center text-sm text-stone-500">
-            Select a message.
+            {notifications.length === 0
+              ? "No notifications yet."
+              : "Select a message."}
           </div>
         )}
       </div>

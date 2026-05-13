@@ -1,10 +1,9 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { X, ShieldCheck, AlertTriangle } from "lucide-react";
+import { X, ShieldCheck } from "lucide-react";
 
 // Fields shared with the factor partner on quote submission.
-// Must match FIELDS_SHARED in lib/quote-state-store.ts exactly.
 const MODAL_FIELDS = [
   "USDOT",
   "MC number",
@@ -20,8 +19,7 @@ type Props = {
   onClose: () => void;
   onConfirm: () => void;
   partnerName: string;
-  quoteId: string;
-  existingSubmissionPartner?: string; // set when C9 multi-quote warning applies
+  profileId: string;
 };
 
 export default function ConsentModal({
@@ -29,8 +27,7 @@ export default function ConsentModal({
   onClose,
   onConfirm,
   partnerName,
-  quoteId: _quoteId,
-  existingSubmissionPartner,
+  profileId: _profileId,
 }: Props) {
   const dialogRef = useRef<HTMLDivElement>(null);
 
@@ -83,20 +80,6 @@ export default function ConsentModal({
 
         {/* Body */}
         <div className="px-6 py-6 space-y-5">
-          {/* Multi-quote warning (C9 stretch) */}
-          {existingSubmissionPartner && (
-            <div className="flex items-start gap-3 border border-amber-200 bg-amber-50 p-4">
-              <AlertTriangle className="h-4 w-4 flex-none text-amber-700 mt-0.5" />
-              <p className="text-sm text-amber-800">
-                You already submitted to{" "}
-                <span className="font-semibold">{existingSubmissionPartner}</span>.
-                Most carriers only need one factoring partner at a time. You can
-                still proceed, but having two active submissions may create
-                conflicting onboarding requests.
-              </p>
-            </div>
-          )}
-
           <div>
             <p className="text-sm text-stone-700 leading-relaxed">
               Clicking <span className="font-semibold">Confirm</span> shares the
@@ -149,7 +132,7 @@ export default function ConsentModal({
             }}
             className="px-4 py-2 text-sm font-semibold text-white bg-orange-600 transition-colors hover:bg-orange-700"
           >
-            {existingSubmissionPartner ? "Confirm anyway" : "Confirm — share and submit"}
+            Confirm — share and submit
           </button>
         </div>
       </div>

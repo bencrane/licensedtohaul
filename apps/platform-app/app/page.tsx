@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { pool } from "@/lib/audience-specs/db";
+import { pool } from "@/lib/db";
 
 export default async function RootPage() {
   const supabase = await createClient();
@@ -32,7 +32,7 @@ export default async function RootPage() {
   if (org.usdot) redirect(`/dashboard/${org.usdot}`);
 
   // Otherwise (partner-side or unclaimed carrier) → partner portal by slug.
-  if (org.slug) redirect(`/partner/${org.slug}/spec`);
+  if (org.slug) redirect(`/partner/${org.slug}`);
 
   redirect("/access-expired");
 }

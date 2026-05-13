@@ -6,7 +6,6 @@ import TransferInbox from "@/components/partner-dashboard/TransferInbox";
 import MasterInbox from "@/components/partner-dashboard/MasterInbox";
 import { listTransfersForOrg } from "@/lib/transfers/actions";
 import { listThreadPreviewsForOrg } from "@/lib/messages/actions";
-import { FACTOR_SLUGS, getMockTransfersForFactor } from "@/lib/mock-factor-transfers";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -25,12 +24,8 @@ export default async function TransfersPage({ params, searchParams }: Props) {
 
   const activeView = view === "messages" ? "messages" : "transfers";
 
-  // Factor slugs (rts-financial, tbs-factoring, apex-capital) use in-memory mock transfers.
-  // All other slugs (e.g. brookhaven) hit Postgres via listTransfersForOrg — untouched.
   const [transfers, threads] = await Promise.all([
-    FACTOR_SLUGS.has(slug)
-      ? Promise.resolve(getMockTransfersForFactor(slug))
-      : listTransfersForOrg(slug),
+    listTransfersForOrg(slug),
     listThreadPreviewsForOrg(slug),
   ]);
 

@@ -1,7 +1,7 @@
 'use server';
-
+// Carrier-side messaging is now DB-backed. Carriers sign in with carrier@licensedtohaul.com.
 import { revalidatePath } from 'next/cache';
-import { pool } from '@/lib/audience-specs/db';
+import { pool } from '@/lib/db';
 import { createClient } from '@/lib/supabase/server';
 import type { Message, SendMessageState, ThreadPreview } from './types';
 
@@ -132,5 +132,36 @@ export async function sendMessage(
   );
 
   revalidatePath(`/partner/${slug}/transfers/${transferId}`);
+  return { error: null };
+}
+
+export async function sendCarrierMessage(
+  dot: string,
+  transferId: string,
+  _prev: SendMessageState,
+  formData: FormData,
+): Promise<SendMessageState> {
+  const body = String(formData.get('body') ?? '').trim();
+  if (!body) return { error: 'Message cannot be empty.' };
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'Not signed in.' };
+
+  const userRow = await pool().query<{ id: string }>(
+    'SELECT id FROM lth.users WHERE auth_user_id = $1',
+    [user.id],
+  );
+  const senderUserId = userRow.rows[0]?.id ?? null;
+
+  const threadId = await getOrCreateThreadId(transferId);
+
+  await pool().query(
+    `INSERT INTO lth.messages (thread_id, sender_user_id, sender_side, body)
+     VALUES ($1, $2, 'carrier', $3)`,
+    [threadId, senderUserId, body],
+  );
+
+  revalidatePath(`/dashboard/${dot}/conversations/${transferId}`);
   return { error: null };
 }

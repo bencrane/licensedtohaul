@@ -6,17 +6,13 @@ import {
   LayoutDashboard,
   Inbox,
   ListChecks,
-  SlidersHorizontal,
-  Sparkles,
-  LayoutGrid,
-  Users,
   FileBarChart,
   UserCog,
-  Settings2,
   Wallet,
   ChevronDown,
   LogOut,
   PanelLeftClose,
+  ClipboardList,
 } from "lucide-react";
 import Wordmark from "@/components/site/Wordmark";
 import { useSidebar } from "@/components/dashboard/DashboardShell";
@@ -58,33 +54,13 @@ function buildNav(slug: string, awaitingAction: number): NavSection[] {
       ],
     },
     {
-      label: "Market",
-      items: [
-        {
-          label: "Catalog",
-          href: `${base}/catalog`,
-          icon: <LayoutGrid className="h-4 w-4" />,
-        },
-        {
-          label: "Compose",
-          href: `${base}/compose`,
-          icon: <Sparkles className="h-4 w-4" />,
-        },
-        {
-          label: "Audience specs",
-          href: `${base}/spec`,
-          icon: <SlidersHorizontal className="h-4 w-4" />,
-        },
-        {
-          label: "Audience shape",
-          href: `${base}/audience`,
-          icon: <Users className="h-4 w-4" />,
-        },
-      ],
-    },
-    {
       label: "Account",
       items: [
+        {
+          label: "Profile",
+          href: `${base}/profile`,
+          icon: <ClipboardList className="h-4 w-4" />,
+        },
         {
           label: "Reports",
           href: `${base}/reports`,
@@ -94,11 +70,6 @@ function buildNav(slug: string, awaitingAction: number): NavSection[] {
           label: "Team",
           href: `${base}/team`,
           icon: <UserCog className="h-4 w-4" />,
-        },
-        {
-          label: "Defaults",
-          href: `${base}/defaults`,
-          icon: <Settings2 className="h-4 w-4" />,
         },
         {
           label: "Billing & agreement",
