@@ -1,27 +1,27 @@
 /**
  * Live FMCSA dashboard fetcher. Server-side only — runs inside the
- * dashboard page's React Server Component. Calls hq-x's
- * /api/fmcsa/carrier/{dot} endpoint with the user's Supabase JWT
- * forwarded as Bearer, maps the substrate envelope to the existing
- * DashboardData shape the page components already consume, and falls
- * back to the mock for fields the substrate doesn't surface yet.
+ * dashboard page's React Server Component. Calls DEX's
+ * GET /api/v1/fmcsa/carriers/{dot_number} directly with a service token
+ * (FMCSA_API_SERVICE_TOKEN), maps the substrate envelope to the existing
+ * DashboardData shape, and falls back to the mock for fields the substrate
+ * doesn't surface.
  *
- * The substrate (data-engine-x L1 views over sorted derived parquet on R2)
- * gives us live identity + authority + insurance + safety BASICs + recent
- * inspections + recent crashes. Compliance deadlines (IFTA, IRP, D&A),
- * inbox, feed events, and notification prefs are NOT in the substrate —
- * those still flow from the mock until separate substrates ship.
+ * The substrate is data-engine-x's DuckDB views over R2 daily Parquet
+ * (fmcsa-derived/*). It gives us live identity + authority history +
+ * insurance + safety BASICs + recent inspections + crashes. Compliance
+ * deadlines (IFTA, IRP, D&A), inbox, feed events, and notification prefs
+ * are NOT in the substrate — those still flow from the mock until separate
+ * substrates ship.
  *
- * When env.FMCSA_API_BASE_URL is unset OR the upstream call fails, falls
- * back to getMockDashboard() so the page never breaks. That makes local
- * development against the static fixture continue to work.
+ * When env.FMCSA_API_BASE_URL or env.FMCSA_API_SERVICE_TOKEN is unset OR
+ * the upstream call fails, falls back to getMockDashboard().
  */
-import { createClient } from "@/lib/supabase/server";
 import { env } from "@/lib/env";
 import { getMockDashboard, type DashboardData } from "@/lib/mock-dashboard";
 
-// Substrate envelope shape (what hq-x returns under .data, matching DEX's
-// /api/v1/fmcsa/carrier-view/{dot} response).
+// Envelope shape returned by DEX under `.data` for
+// GET /api/v1/fmcsa/carriers/{dot_number}. See
+// apps/data-engine-x/app/services/fmcsa_mv_detail.py::get_carrier_detail.
 type SubstrateEnvelope = {
   carrier: Record<string, unknown>;
   authorities: Array<Record<string, unknown>>;
@@ -132,27 +132,20 @@ function mergeEnvelope(envelope: SubstrateEnvelope, mockTemplate: DashboardData)
     authorityTypes: authorityTypes.length > 0 ? authorityTypes : mockTemplate.carrier.authorityTypes,
     authorityGranted,
     authorityAge,
-    powerUnits: n(c.power_units_int ?? c.power_units) || mockTemplate.carrier.powerUnits,
-    drivers: n(c.total_drivers_int ?? c.total_drivers) || mockTemplate.carrier.drivers,
-    domicileState: s(c.phy_state) || mockTemplate.carrier.domicileState,
-    hazmatEndorsed: s(c.hm_ind).toUpperCase() === "Y",
+    powerUnits: n(c.power_units) || mockTemplate.carrier.powerUnits,
+    drivers: n(c.driver_total) || mockTemplate.carrier.drivers,
+    domicileState: s(c.physical_state) || mockTemplate.carrier.domicileState,
+    hazmatEndorsed: mockTemplate.carrier.hazmatEndorsed,
     refreshedAt: "today",
     legalAddress: {
-      street: s(c.phy_street) || mockTemplate.carrier.legalAddress.street,
-      city: s(c.phy_city) || mockTemplate.carrier.legalAddress.city,
-      state: s(c.phy_state) || mockTemplate.carrier.legalAddress.state,
-      zip: s(c.phy_zip) || mockTemplate.carrier.legalAddress.zip,
+      street: s(c.physical_street) || mockTemplate.carrier.legalAddress.street,
+      city: s(c.physical_city) || mockTemplate.carrier.legalAddress.city,
+      state: s(c.physical_state) || mockTemplate.carrier.legalAddress.state,
+      zip: s(c.physical_zip) || mockTemplate.carrier.legalAddress.zip,
     },
     phone: s(c.phone) || mockTemplate.carrier.phone,
     emailOnFile: s(c.email_address) || mockTemplate.carrier.emailOnFile,
-    carrierOperation:
-      s(c.operating_radius_class) === "interstate"
-        ? "Interstate / For-Hire"
-        : s(c.operating_radius_class) === "intrastate_hazmat"
-        ? "Intrastate Hazmat"
-        : s(c.operating_radius_class) === "intrastate_non_haz"
-        ? "Intrastate"
-        : mockTemplate.carrier.carrierOperation,
+    carrierOperation: mockTemplate.carrier.carrierOperation,
   };
 
   const mcs150Raw = s(c.mcs150_date);
@@ -234,61 +227,44 @@ function mergeEnvelope(envelope: SubstrateEnvelope, mockTemplate: DashboardData)
   return merged;
 }
 
-async function _getAccessToken(): Promise<string | null> {
-  try {
-    const supabase = await createClient();
-    const { data, error } = await supabase.auth.getSession();
-    if (error || !data?.session?.access_token) return null;
-    return data.session.access_token;
-  } catch {
-    return null;
-  }
-}
-
 /**
  * Primary dashboard accessor — used by the dashboard page server-side.
- * Forwards the user's Supabase JWT to hq-x. Falls back to mock when
- * env.FMCSA_API_BASE_URL is unset or the upstream isn't reachable.
+ * Calls DEX (api.dataengine.run) directly with a service token. Falls back
+ * to getMockDashboard() when env.FMCSA_API_BASE_URL or
+ * env.FMCSA_API_SERVICE_TOKEN is unset, the DOT is empty, or the upstream
+ * isn't reachable.
  */
 export async function getDashboard(dotNumber: string): Promise<DashboardData> {
   const cleanDot = (dotNumber ?? "").replace(/\D/g, "");
   const mockTemplate = getMockDashboard(cleanDot);
 
   const baseUrl = env.FMCSA_API_BASE_URL;
-  if (!baseUrl || !cleanDot) {
-    return mockTemplate;
-  }
-
-  const accessToken = await _getAccessToken();
-  if (!accessToken) {
-    // No authenticated session yet — fall back to mock so the dashboard
-    // can still render (e.g. during pre-auth preview or local dev without
-    // a real session). The /dashboard route should be gated by middleware
-    // in normal operation.
+  const serviceToken = env.FMCSA_API_SERVICE_TOKEN;
+  if (!baseUrl || !serviceToken || !cleanDot) {
     return mockTemplate;
   }
 
   try {
-    const url = `${baseUrl.replace(/\/$/, "")}/api/fmcsa/carrier/${cleanDot}`;
+    const url = `${baseUrl.replace(/\/$/, "")}/api/v1/fmcsa/carriers/${cleanDot}`;
     const resp = await fetch(url, {
       headers: {
         accept: "application/json",
-        authorization: `Bearer ${accessToken}`,
+        authorization: `Bearer ${serviceToken}`,
       },
       cache: "no-store",
     });
     if (!resp.ok) {
-      console.warn(`hqx_fetch_failed status=${resp.status} dot=${cleanDot}`);
+      console.warn(`dex_fetch_failed status=${resp.status} dot=${cleanDot}`);
       return mockTemplate;
     }
     const body = (await resp.json()) as { data: SubstrateEnvelope };
     if (!body?.data?.carrier) {
-      console.warn(`hqx_response_malformed dot=${cleanDot}`);
+      console.warn(`dex_response_malformed dot=${cleanDot}`);
       return mockTemplate;
     }
     return mergeEnvelope(body.data, mockTemplate);
   } catch (err) {
-    console.warn(`hqx_fetch_error dot=${cleanDot} err=`, err);
+    console.warn(`dex_fetch_error dot=${cleanDot} err=`, err);
     return mockTemplate;
   }
 }

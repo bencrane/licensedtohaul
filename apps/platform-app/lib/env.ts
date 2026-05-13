@@ -6,6 +6,7 @@ const schema = z.object({
   LTH_DB_POOLED_URL: z.string().min(1),
   APP_ENV: z.enum(['dev', 'stg', 'prd']),
   FMCSA_API_BASE_URL: z.string().url().optional(),
+  FMCSA_API_SERVICE_TOKEN: z.string().min(1).optional(),
 });
 
 const parsed = schema.safeParse({
@@ -15,6 +16,7 @@ const parsed = schema.safeParse({
   LTH_DB_POOLED_URL: process.env.LTH_DB_POOLED_URL,
   APP_ENV: process.env.APP_ENV,
   FMCSA_API_BASE_URL: process.env.FMCSA_API_BASE_URL,
+  FMCSA_API_SERVICE_TOKEN: process.env.FMCSA_API_SERVICE_TOKEN,
 });
 
 if (!parsed.success) {
