@@ -37,7 +37,6 @@ export default async function DealsPage({ params, searchParams }: Props) {
       <PageHeader
         eyebrow="Overview"
         title="Inbox"
-        description="Every carrier who has shared their profile with you, and every conversation you have open."
         meta={
           <>
             <span className="inline-flex items-center gap-1.5">
@@ -53,27 +52,26 @@ export default async function DealsPage({ params, searchParams }: Props) {
             </span>
           </>
         }
+        subnav={
+          <>
+            <TabLink
+              href={`/partner/${slug}/deals`}
+              active={activeView === "deals"}
+              icon={<Inbox className="h-4 w-4" />}
+              label="Deals"
+              count={deals.length}
+            />
+            <TabLink
+              href={`/partner/${slug}/deals?view=messages`}
+              active={activeView === "messages"}
+              icon={<MessageSquare className="h-4 w-4" />}
+              label="Conversations"
+              count={threads.length}
+              badge={totalUnread > 0 ? totalUnread : undefined}
+            />
+          </>
+        }
       />
-
-      <div className="border-b border-line bg-white">
-        <div className="mx-auto flex max-w-[1400px] gap-1 px-6">
-          <TabLink
-            href={`/partner/${slug}/deals`}
-            active={activeView === "deals"}
-            icon={<Inbox className="h-4 w-4" />}
-            label="Deals"
-            count={deals.length}
-          />
-          <TabLink
-            href={`/partner/${slug}/deals?view=messages`}
-            active={activeView === "messages"}
-            icon={<MessageSquare className="h-4 w-4" />}
-            label="Conversations"
-            count={threads.length}
-            badge={totalUnread > 0 ? totalUnread : undefined}
-          />
-        </div>
-      </div>
 
       <section className="flex-1 bg-background">
         <div className="mx-auto max-w-[1400px] px-6 py-8">

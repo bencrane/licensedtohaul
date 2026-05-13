@@ -4,6 +4,13 @@ type Props = {
   description?: string;
   meta?: React.ReactNode;
   actions?: React.ReactNode;
+  /**
+   * Sub-navigation (tabs, view toggles) rendered directly below the title block,
+   * inside the same chrome container. Use this slot instead of stacking a separate
+   * `<div className="border-b">` below the header — that produces two parallel
+   * divider lines and makes the chrome height inconsistent across pages.
+   */
+  subnav?: React.ReactNode;
 };
 
 export default function PageHeader({
@@ -12,10 +19,11 @@ export default function PageHeader({
   description,
   meta,
   actions,
+  subnav,
 }: Props) {
   return (
     <section className="border-b border-line bg-white">
-      <div className="mx-auto max-w-[1400px] px-6 py-5">
+      <div className="mx-auto max-w-[1400px] px-6 pt-5 pb-4">
         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
           <div className="min-w-0">
             <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">
@@ -40,6 +48,9 @@ export default function PageHeader({
           )}
         </div>
       </div>
+      {subnav && (
+        <div className="mx-auto flex max-w-[1400px] gap-1 px-6">{subnav}</div>
+      )}
     </section>
   );
 }
