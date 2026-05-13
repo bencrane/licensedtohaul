@@ -63,7 +63,7 @@ function TransferCard({ slug, row }: { slug: string; row: TransferRow }) {
   return (
     <li>
       <Link
-        href={`/partner/${slug}/transfers/${row.id}`}
+        href={`/partner/${slug}/deals/${row.id}`}
         className={`group block border ${row.disposition === "new" ? "border-orange-300" : "border-line"} bg-surface transition-colors hover:border-orange-300 ${isClosed ? "opacity-80" : ""}`}
       >
         <div className="grid gap-px bg-line md:grid-cols-12">
