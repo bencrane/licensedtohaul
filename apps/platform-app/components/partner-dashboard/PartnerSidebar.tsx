@@ -41,8 +41,8 @@ function buildNav(slug: string, awaitingAction: number): NavSection[] {
           icon: <LayoutDashboard className="h-4 w-4" />,
         },
         {
-          label: "Transfer inbox",
-          href: `${base}/transfers`,
+          label: "Inbox",
+          href: `${base}/deals`,
           icon: <Inbox className="h-4 w-4" />,
           badge: awaitingAction > 0 ? String(awaitingAction) : undefined,
         },

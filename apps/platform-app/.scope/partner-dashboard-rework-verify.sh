@@ -520,8 +520,10 @@ ALLOWLIST=(
   "apps/platform-app/lib/notifications/"
   "apps/platform-app/components/dashboard/CarrierMessageThread.tsx"
   "apps/platform-app/.scope/partner-dashboard-rework-verify.sh"
+  "apps/platform-app/.gitignore"
   "apps/platform-app/app/__test__/"
   "apps/platform-app/app/api/test/"
+  "apps/platform-app/app/partner/[slug]/deals/"
 )
 
 MODIFY_ALLOWLIST=(
@@ -536,6 +538,12 @@ MODIFY_ALLOWLIST=(
   "apps/platform-app/components/dashboard/ConsentModal.tsx"
   "apps/platform-app/components/dashboard/DataPartnerLog.tsx"
   "apps/platform-app/app/partner/[slug]/transfers/page.tsx"
+  "apps/platform-app/app/partner/[slug]/page.tsx"
+  "apps/platform-app/app/partner/[slug]/layout.tsx"
+  "apps/platform-app/app/partner/[slug]/pipeline/page.tsx"
+  "apps/platform-app/app/partner/[slug]/billing/page.tsx"
+  "apps/platform-app/app/partner/[slug]/reports/page.tsx"
+  "apps/platform-app/app/partner/[slug]/team/page.tsx"
   "apps/platform-app/lib/mock-dashboard.ts"
   "apps/platform-app/app/auth/callback/route.ts"
   "apps/platform-app/app/auth/actions.ts"

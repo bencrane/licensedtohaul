@@ -17,19 +17,19 @@ export async function generateMetadata({ params }: Props) {
   return { title: `Inbox · ${slug} — Licensed to Haul` };
 }
 
-export default async function TransfersPage({ params, searchParams }: Props) {
+export default async function DealsPage({ params, searchParams }: Props) {
   const { slug } = await params;
   const { view } = await searchParams;
   if (!slug) notFound();
 
-  const activeView = view === "messages" ? "messages" : "transfers";
+  const activeView = view === "messages" ? "messages" : "deals";
 
-  const [transfers, threads] = await Promise.all([
+  const [deals, threads] = await Promise.all([
     listTransfersForOrg(slug),
     listThreadPreviewsForOrg(slug),
   ]);
 
-  const newCount = transfers.filter((t) => t.disposition === "new").length;
+  const newCount = deals.filter((t) => t.disposition === "new").length;
   const totalUnread = threads.reduce((sum, t) => sum + t.unread_count, 0);
 
   return (
@@ -37,11 +37,11 @@ export default async function TransfersPage({ params, searchParams }: Props) {
       <PageHeader
         eyebrow="Overview"
         title="Inbox"
-        description="Every carrier your active specs have delivered, and every conversation you've opened with them."
+        description="Every carrier who has shared their profile with you, and every conversation you have open."
         meta={
           <>
             <span className="inline-flex items-center gap-1.5">
-              {transfers.length} transfers · {newCount} new
+              {deals.length} deal{deals.length === 1 ? "" : "s"} · {newCount} new
             </span>
             <span className="inline-flex items-center gap-1.5">
               {threads.length} conversation{threads.length === 1 ? "" : "s"}
@@ -55,21 +55,20 @@ export default async function TransfersPage({ params, searchParams }: Props) {
         }
       />
 
-      {/* Tab bar */}
       <div className="border-b border-line bg-white">
         <div className="mx-auto flex max-w-[1400px] gap-1 px-6">
           <TabLink
-            href={`/partner/${slug}/transfers`}
-            active={activeView === "transfers"}
+            href={`/partner/${slug}/deals`}
+            active={activeView === "deals"}
             icon={<Inbox className="h-4 w-4" />}
-            label="Transfers"
-            count={transfers.length}
+            label="Deals"
+            count={deals.length}
           />
           <TabLink
-            href={`/partner/${slug}/transfers?view=messages`}
+            href={`/partner/${slug}/deals?view=messages`}
             active={activeView === "messages"}
             icon={<MessageSquare className="h-4 w-4" />}
-            label="Master inbox"
+            label="Conversations"
             count={threads.length}
             badge={totalUnread > 0 ? totalUnread : undefined}
           />
@@ -81,7 +80,7 @@ export default async function TransfersPage({ params, searchParams }: Props) {
           {activeView === "messages" ? (
             <MasterInbox slug={slug} threads={threads} />
           ) : (
-            <TransferInbox slug={slug} transfers={transfers} />
+            <TransferInbox slug={slug} transfers={deals} />
           )}
         </div>
       </section>

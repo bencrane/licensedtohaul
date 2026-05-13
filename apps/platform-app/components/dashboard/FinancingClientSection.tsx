@@ -11,16 +11,18 @@ import ConsentModal from "@/components/dashboard/ConsentModal";
 import type { FactorProfile } from "@/lib/factor-profiles/types";
 import { submitQuote } from "@/lib/quote-submit/actions";
 
+type FactorMatch = FactorProfile & { match_reasons?: string[] };
+
 type ModalState = {
   open: boolean;
-  profile: FactorProfile | null;
+  profile: FactorMatch | null;
 };
 
 export default function FinancingClientSection({
   profiles,
   dot,
 }: {
-  profiles: FactorProfile[];
+  profiles: FactorMatch[];
   dot: string;
 }) {
   const [modal, setModal] = useState<ModalState>({ open: false, profile: null });
@@ -82,11 +84,12 @@ function FactorCard({
   isSubmitted,
   onTakeQuote,
 }: {
-  profile: FactorProfile;
+  profile: FactorMatch;
   isSubmitted: boolean;
   onTakeQuote: () => void;
 }) {
   const t = profile.terms;
+  const reasons = profile.match_reasons ?? [];
 
   return (
     <li className="bg-surface p-5">
@@ -111,6 +114,22 @@ function FactorCard({
         <p className="mt-2 text-xs leading-relaxed text-stone-600">
           {profile.display_copy}
         </p>
+      )}
+
+      {reasons.length > 0 && (
+        <div className="mt-4 border border-emerald-200 bg-emerald-50 px-3 py-2.5">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-800">
+            Why this factor matches you
+          </p>
+          <ul className="mt-1.5 space-y-1">
+            {reasons.map((r) => (
+              <li key={r} className="flex items-start gap-1.5 text-xs text-emerald-900">
+                <Check className="mt-0.5 h-3 w-3 flex-none text-emerald-600" strokeWidth={3} />
+                <span>{r}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
 
       <dl className="mt-4 space-y-2 text-xs">

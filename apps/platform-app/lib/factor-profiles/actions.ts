@@ -34,6 +34,81 @@ export async function listFactorProfiles(): Promise<FactorProfile[]> {
   return rows;
 }
 
+type CarrierFmcsa = {
+  domicile: string | null;
+  equipment_class: string | null;
+  power_units: number | null;
+  authority_years: number | null;
+  hazmat: boolean | null;
+};
+
+function parseStateFromDomicile(domicile: string | null): string | null {
+  if (!domicile) return null;
+  const m = domicile.match(/,\s*([A-Z]{2})\s*$/);
+  return m ? m[1] : null;
+}
+
+/**
+ * Returns factor profiles that match a carrier's FMCSA profile, plus reason strings
+ * for each match. Filtering rules (any criterion that fails → carrier doesn't see this factor):
+ *
+ * - state: carrier domicile-state must be in factor.states (empty list = factor serves all states)
+ * - equipment: carrier.equipment_class must be in factor.equipment_classes (empty = all)
+ * - fleet size: factor.fleet_size_min ≤ carrier.power_units ≤ factor.fleet_size_max
+ * - authority age: carrier.authority_years ≥ factor.authority_age_min_years
+ * - hazmat: if carrier.hazmat = true, factor.hazmat_ok must also be true
+ */
+export async function listFactorProfilesForCarrierDot(
+  dot: string,
+): Promise<Array<FactorProfile & { match_reasons: string[] }>> {
+  const carrierRow = await pool().query<{ fmcsa_snapshot: CarrierFmcsa | null }>(
+    `SELECT fmcsa_snapshot FROM lth.organizations WHERE usdot::text = $1 AND category = 'carrier'`,
+    [dot],
+  );
+  const fm = carrierRow.rows[0]?.fmcsa_snapshot ?? null;
+  if (!fm) return [];
+
+  const carrierState = parseStateFromDomicile(fm.domicile);
+  const carrierEquipment = fm.equipment_class ?? null;
+  const carrierPower = fm.power_units ?? null;
+  const carrierAuthority = fm.authority_years ?? null;
+  const carrierHazmat = fm.hazmat ?? false;
+
+  const all = await listFactorProfiles();
+
+  return all.flatMap((p) => {
+    const c = p.criteria;
+    const reasons: string[] = [];
+
+    if (c.states && c.states.length > 0) {
+      if (!carrierState || !c.states.includes(carrierState)) return [];
+      reasons.push(`Factors carriers in ${carrierState}`);
+    } else {
+      reasons.push("Factors carriers in any state");
+    }
+
+    if (c.equipment_classes && c.equipment_classes.length > 0) {
+      if (!carrierEquipment || !c.equipment_classes.includes(carrierEquipment)) return [];
+      reasons.push(`Covers ${carrierEquipment.toLowerCase()} equipment`);
+    }
+
+    if (carrierPower != null) {
+      if (carrierPower < c.fleet_size_min || carrierPower > c.fleet_size_max) return [];
+      reasons.push(`Fleet size ${c.fleet_size_min}-${c.fleet_size_max} PU (you: ${carrierPower})`);
+    }
+
+    if (carrierAuthority != null && c.authority_age_min_years > 0) {
+      if (carrierAuthority < c.authority_age_min_years) return [];
+      reasons.push(`Min ${c.authority_age_min_years}y authority (you: ${carrierAuthority}y)`);
+    }
+
+    if (carrierHazmat && !c.hazmat_ok) return [];
+    if (carrierHazmat) reasons.push("Accepts hazmat-endorsed carriers");
+
+    return [{ ...p, match_reasons: reasons }];
+  });
+}
+
 /**
  * Returns the factor profile for a given org slug. Used on the partner profile page.
  */
