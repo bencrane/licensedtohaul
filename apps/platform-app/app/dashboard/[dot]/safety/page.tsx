@@ -68,14 +68,16 @@ export default async function SafetyPage({ params }: Props) {
                   </div>
                   <div className="mt-3 flex items-baseline gap-2">
                     <span className="font-display text-3xl text-stone-900">
-                      {b.percentile}
+                      {b.percentile === null ? "—" : b.percentile}
                     </span>
-                    <span className="text-xs text-stone-500">percentile</span>
+                    <span className="text-xs text-stone-500">
+                      {b.percentile === null ? "not rated" : "percentile"}
+                    </span>
                   </div>
                   <div className="mt-3 h-1.5 w-full overflow-hidden bg-stone-100">
                     <div
                       className={`h-full ${BASIC_TONES[b.status]}`}
-                      style={{ width: `${Math.max(2, b.percentile)}%` }}
+                      style={{ width: `${b.percentile === null ? 2 : Math.max(2, b.percentile)}%` }}
                     />
                   </div>
                 </li>

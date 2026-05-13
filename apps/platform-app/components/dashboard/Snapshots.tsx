@@ -78,12 +78,14 @@ export function SafetyCard({ safety }: { safety: SafetySnapshot }) {
             <li key={b.name}>
               <div className="flex items-center justify-between text-xs">
                 <span className="text-stone-700">{b.name}</span>
-                <span className="font-mono text-stone-900">{b.percentile}</span>
+                <span className="font-mono text-stone-900">
+                  {b.percentile === null ? "—" : b.percentile}
+                </span>
               </div>
               <div className="mt-1 h-1.5 w-full overflow-hidden bg-stone-100">
                 <div
                   className={`h-full ${BASIC_BAR_TONES[b.status]}`}
-                  style={{ width: `${Math.max(2, b.percentile)}%` }}
+                  style={{ width: `${b.percentile === null ? 2 : Math.max(2, b.percentile)}%` }}
                 />
               </div>
             </li>
