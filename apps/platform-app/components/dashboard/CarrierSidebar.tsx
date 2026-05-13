@@ -68,16 +68,6 @@ function buildNav(dot: string): NavSection[] {
       label: "Opportunities",
       items: [
         {
-          label: "Freight",
-          href: `${base}/freight`,
-          icon: <Truck className="h-4 w-4" />,
-        },
-        {
-          label: "Insurance",
-          href: `${base}/insurance`,
-          icon: <Shield className="h-4 w-4" />,
-        },
-        {
           label: "Financing",
           href: `${base}/financing`,
           icon: <Wallet className="h-4 w-4" />,

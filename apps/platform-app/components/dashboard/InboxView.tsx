@@ -72,8 +72,6 @@ const FILTER_OPTIONS: { value: Filter; label: string }[] = [
   { value: "unread", label: "Unread" },
   { value: "important", label: "Important" },
   { value: "compliance", label: "Compliance" },
-  { value: "freight", label: "Freight" },
-  { value: "insurance", label: "Insurance" },
   { value: "financing", label: "Financing" },
   { value: "safety", label: "Safety" },
 ];

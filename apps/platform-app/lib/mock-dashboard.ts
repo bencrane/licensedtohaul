@@ -535,26 +535,6 @@ export function getMockDashboard(dotNumber?: string): DashboardData {
       status: "warn",
     },
     {
-      id: "evt-2",
-      category: "freight",
-      timestamp: "2026-04-09T11:30:00Z",
-      relativeTime: "Yesterday · 11:32am",
-      title: "3 lanes posted that match your equipment + states",
-      body: "Dallas → Albuquerque dry van, Houston → OKC reefer, Tulsa → Little Rock dry van.",
-      primaryAction: { label: "View lanes", href: "#" },
-    },
-    {
-      id: "evt-3",
-      category: "insurance",
-      timestamp: "2026-04-08T15:45:00Z",
-      relativeTime: "2 days ago",
-      title: "Insurance renewal in 82 days",
-      body: "Continental Western expires Aug 1, 2026 (BIPD $1M, cargo $100K). Lock quotes now from brokers writing TX general freight.",
-      primaryAction: { label: "Request quotes", href: "#" },
-      secondaryAction: { label: "Dismiss for 30 days", href: "#" },
-      status: "warn",
-    },
-    {
       id: "evt-4",
       category: "safety",
       timestamp: "2026-04-07T09:15:00Z",
@@ -605,38 +585,6 @@ export function getMockDashboard(dotNumber?: string): DashboardData {
       read: false,
       important: true,
       primaryAction: { label: "File IFTA Q1 now", href: `/dashboard/${dot}/compliance` },
-    },
-    {
-      id: "msg-2",
-      category: "freight",
-      subject: "3 lanes match your authority — TX, OK, NM",
-      preview:
-        "Dallas → Albuquerque dry van, Houston → OKC reefer, Tulsa → Little Rock dry van. Posted in the last 2 hours.",
-      body:
-        "Three lanes matched your operating profile in the last 2 hours:\n\n• Dallas, TX → Albuquerque, NM · Dry van · $2,150 ($3.28/mi) · Echo Global Logistics, quick-pay 7d\n• Houston, TX → Oklahoma City, OK · Reefer · $1,875 ($4.16/mi) · RXO Logistics, net-30\n• Tulsa, OK → Little Rock, AR · Dry van · $1,100 ($4.10/mi) · Coyote Logistics, quick-pay 2d\n\nView lanes → /dashboard/" + dot + "/freight",
-      fromName: "Freight feed",
-      fromEmail: "freight@licensedtohaul.com",
-      sentAt: "2026-04-09T11:30:00Z",
-      relativeTime: "Yesterday · 11:32am",
-      read: false,
-      important: false,
-      primaryAction: { label: "View lanes", href: `/dashboard/${dot}/freight` },
-    },
-    {
-      id: "msg-3",
-      category: "insurance",
-      subject: "Insurance renewal in 82 days — quotes in motion",
-      preview:
-        "Continental Western expires Aug 1, 2026. Three quote requests sent to brokers writing TX general freight.",
-      body:
-        "Your BIPD and cargo coverage with Continental Western expires August 1, 2026 — 82 days from now.\n\nQuote requests sent to:\n• Brookhaven Commercial — quote received ($14,240/yr, $2,500 deductible)\n• Lone Star Specialty — quote received ($13,890/yr, $5,000 deductible)\n• Heritage Trucking — pending, underwriter reviewing\n\nBest quote so far is $350/yr lower than your current premium. Compare side-by-side from the Insurance page.",
-      fromName: "Insurance",
-      fromEmail: "insurance@licensedtohaul.com",
-      sentAt: "2026-04-08T15:45:00Z",
-      relativeTime: "2 days ago",
-      read: true,
-      important: true,
-      primaryAction: { label: "Compare quotes", href: `/dashboard/${dot}/insurance` },
     },
     {
       id: "msg-4",
@@ -706,7 +654,7 @@ export function getMockDashboard(dotNumber?: string): DashboardData {
       preview:
         "Your authority is claimed. We've pulled your live FMCSA profile and indexed compliance, safety, and fleet records.",
       body:
-        "Welcome to Licensed to Haul.\n\nWe've pulled your live FMCSA profile for USDOT " + dot + " — authority status, MCS-150, crashes, inspections, hazmat endorsements, fleet roster. Refreshed daily.\n\nWhat happens from here:\n• Compliance deadlines hit your inbox before they hit your status\n• Freight that fits your equipment + lanes appears in /freight when posted\n• Insurance / financing / fuel / equipment opportunities surface when relevant\n• Quiet by default — we email when something matters\n\nNotification cadence is set to default — adjust any category in Settings.",
+        "Welcome to Licensed to Haul.\n\nWe've pulled your live FMCSA profile for USDOT " + dot + " — authority status, MCS-150, crashes, inspections, hazmat endorsements, fleet roster. Refreshed daily.\n\nWhat happens from here:\n• Compliance deadlines hit your inbox before they hit your status\n• Insurance / financing / fuel / equipment opportunities surface when relevant\n• Quiet by default — we email when something matters\n\nNotification cadence is set to default — adjust any category in Settings.",
       fromName: "Licensed to Haul",
       fromEmail: "hello@licensedtohaul.com",
       sentAt: "2026-03-04T15:18:00Z",
@@ -722,18 +670,6 @@ export function getMockDashboard(dotNumber?: string): DashboardData {
       category: "compliance",
       label: "Compliance deadlines",
       description: "MCS-150 refresh windows, IFTA quarters, IRP renewals, D&A queries, biennial filings.",
-      cadence: "immediate",
-    },
-    {
-      category: "freight",
-      label: "Freight matches",
-      description: "Lanes posted that match your equipment, operating geography, and lane history.",
-      cadence: "daily_digest",
-    },
-    {
-      category: "insurance",
-      label: "Insurance quotes + renewals",
-      description: "Quote arrivals, renewal-window opens, insurer L&I updates affecting your policy.",
       cadence: "immediate",
     },
     {
