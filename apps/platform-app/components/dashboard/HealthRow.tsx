@@ -88,8 +88,12 @@ export default function HealthRow({
             label="Worst BASIC"
             icon={<AlertTriangle className="h-4 w-4" />}
             status={worstBasic.status}
-            value={`${worstBasic.percentile}%`}
-            detail={`${worstBasic.name}`}
+            value={worstBasic.percentile === null ? "—" : `${worstBasic.percentile}%`}
+            detail={
+              worstBasic.percentile === null
+                ? "Not rated — below SMS volume threshold"
+                : worstBasic.name
+            }
           />
           <HealthTile
             label="Vehicle OOS rate"

@@ -55,7 +55,7 @@ export type InsuranceOnFile = {
 
 export type CsaBasic = {
   name: string;
-  percentile: number;
+  percentile: number | null;
   status: HealthStatus;
   trend: "up" | "down" | "flat";
   trendDelta: number;
@@ -324,7 +324,7 @@ export function getMockDashboard(dotNumber?: string): DashboardData {
   ];
 
   const worstBasic = basics.reduce((max, b) =>
-    b.percentile > max.percentile ? b : max,
+    (b.percentile ?? 0) > (max.percentile ?? 0) ? b : max,
   );
 
   const crashList: Crash[] = [

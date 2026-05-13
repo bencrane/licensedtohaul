@@ -17,7 +17,7 @@
  * the upstream call fails, falls back to getMockDashboard().
  */
 import { env } from "@/lib/env";
-import { getMockDashboard, type DashboardData } from "@/lib/mock-dashboard";
+import { getMockDashboard, type DashboardData, type HealthStatus } from "@/lib/mock-dashboard";
 
 // Envelope shape returned by DEX under `.data` for
 // GET /api/v1/fmcsa/carriers/{dot_number}. See
@@ -75,6 +75,22 @@ function daysSince(raw: string): number {
   const then = new Date(isoString);
   if (isNaN(then.getTime())) return 0;
   return Math.max(0, Math.floor((Date.now() - then.getTime()) / 86_400_000));
+}
+
+/** Days from now until ``raw`` (positive for future, negative for past, 0 if unparseable). */
+function daysUntil(raw: string): number {
+  if (!raw) return 0;
+  let isoString: string | null = null;
+  if (/^\d{8}/.test(raw)) {
+    isoString = `${raw.slice(0, 4)}-${raw.slice(4, 6)}-${raw.slice(6, 8)}T00:00:00Z`;
+  } else {
+    const m = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (m) isoString = `${m[3]}-${m[1].padStart(2, "0")}-${m[2].padStart(2, "0")}T00:00:00Z`;
+  }
+  if (!isoString) return 0;
+  const then = new Date(isoString);
+  if (isNaN(then.getTime())) return 0;
+  return Math.floor((then.getTime() - Date.now()) / 86_400_000);
 }
 
 function mergeEnvelope(envelope: SubstrateEnvelope, mockTemplate: DashboardData): DashboardData {
@@ -158,22 +174,29 @@ function mergeEnvelope(envelope: SubstrateEnvelope, mockTemplate: DashboardData)
     };
   }
 
-  const policy = envelope.insurance_active[0];
-  if (policy) {
-    const bipdMax = n(policy.bipd_maximum_limit) * 1000;
-    const effective = formatFmcsaDate(s(policy.effective_date));
-    const cancelRaw = s(policy.cancel_effective_date);
+  // Primary BIPD policy first; many for-hire carriers carry BIPD/Primary + BIPD/Excess.
+  const primary =
+    envelope.insurance_active.find((p) => s(p.insurance_type_description).toUpperCase().includes("PRIMARY")) ??
+    envelope.insurance_active[0];
+  if (primary) {
+    const bipdMax = n(primary.bipd_maximum_limit) * 1000;
+    const effective = formatFmcsaDate(s(primary.effective_date));
+    const cancelRaw = s(primary.cancel_effective_date);
+    // FMCSA convention: cancel_effective_date is the policy's scheduled expiry.
+    // For active policies in good standing it's a future date; daysUntil returns positive.
+    const daysToExpiration = cancelRaw ? daysUntil(cancelRaw) : 365;
     const expires = cancelRaw ? formatFmcsaDate(cancelRaw) : "—";
-    const daysToExpiration = cancelRaw ? Math.max(0, -daysSince(cancelRaw)) : 365;
+    const status: HealthStatus =
+      daysToExpiration > 90 ? "good" : daysToExpiration > 30 ? "warn" : "alert";
     merged.insurance = {
       ...mockTemplate.insurance,
       bipdLimit: bipdMax > 0 ? `$${bipdMax.toLocaleString()}` : mockTemplate.insurance.bipdLimit,
-      insurer: s(policy.insurance_company_name) || mockTemplate.insurance.insurer,
+      insurer: s(primary.insurance_company_name) || mockTemplate.insurance.insurer,
       effective: effective || mockTemplate.insurance.effective,
       expires,
-      daysToExpiration,
-      status: daysToExpiration > 90 ? "good" : daysToExpiration > 30 ? "warn" : "alert",
-      policyNumber: s(policy.policy_number) || mockTemplate.insurance.policyNumber,
+      daysToExpiration: Math.max(0, daysToExpiration),
+      status,
+      policyNumber: s(primary.policy_number) || mockTemplate.insurance.policyNumber,
       history: envelope.insurance_history.slice(0, 5).map((h) => ({
         type: s(h.insurance_type_description) || "Insurance",
         insurer: s(h.insurance_company_name),
@@ -185,21 +208,49 @@ function mergeEnvelope(envelope: SubstrateEnvelope, mockTemplate: DashboardData)
 
   if (envelope.safety_basics) {
     const sb = envelope.safety_basics;
+    // Helper: preserve null when FMCSA hasn't published a percentile for this carrier
+    // (low-volume carriers don't get CSA scoring). Returning 0 would render as
+    // "0% On track" — misleading, since the score is unknown, not zero.
+    const pct = (v: unknown): number | null => {
+      if (v === null || v === undefined || v === "") return null;
+      const x = typeof v === "number" ? v : Number(v);
+      return Number.isFinite(x) ? x : null;
+    };
+    const statusFor = (p: number | null): HealthStatus =>
+      p === null ? "good" : p > 80 ? "alert" : p > 65 ? "warn" : "good";
+
     const basics: typeof mockTemplate.safety.basics = [
-      { name: "Unsafe Driving", percentile: n(sb.unsafe_driving_percentile), status: "good", trend: "flat", trendDelta: 0 },
-      { name: "Hours-of-Service", percentile: n(sb.hos_percentile), status: "good", trend: "flat", trendDelta: 0 },
-      { name: "Driver Fitness", percentile: n(sb.driver_fitness_percentile), status: "good", trend: "flat", trendDelta: 0 },
-      { name: "Controlled Substances", percentile: n(sb.controlled_substances_percentile), status: "good", trend: "flat", trendDelta: 0 },
-      { name: "Vehicle Maintenance", percentile: n(sb.vehicle_maintenance_percentile), status: "good", trend: "flat", trendDelta: 0 },
+      { name: "Unsafe Driving",        percentile: pct(sb.unsafe_driving_percentile),         status: "good", trend: "flat", trendDelta: 0 },
+      { name: "Hours-of-Service",      percentile: pct(sb.hos_percentile),                    status: "good", trend: "flat", trendDelta: 0 },
+      { name: "Driver Fitness",        percentile: pct(sb.driver_fitness_percentile),         status: "good", trend: "flat", trendDelta: 0 },
+      { name: "Controlled Substances", percentile: pct(sb.controlled_substances_percentile),  status: "good", trend: "flat", trendDelta: 0 },
+      { name: "Vehicle Maintenance",   percentile: pct(sb.vehicle_maintenance_percentile),    status: "good", trend: "flat", trendDelta: 0 },
     ];
-    for (const b of basics) {
-      b.status = b.percentile > 80 ? "alert" : b.percentile > 65 ? "warn" : "good";
-    }
-    const worst = [...basics].sort((a, b) => b.percentile - a.percentile)[0];
+    for (const b of basics) b.status = statusFor(b.percentile);
+
+    // Worst = highest percentile (CSA scoring: 100 = worst). When all are null
+    // (carrier below SMS volume threshold), we surface a "not rated" tile so the
+    // dashboard never shows a fabricated 0% or mock percentile.
+    const rated = basics.filter((b) => b.percentile !== null);
+    const worst = rated.length > 0
+      ? rated.reduce((acc, b) => ((b.percentile ?? 0) > (acc.percentile ?? 0) ? b : acc))
+      : { name: "Not rated", percentile: null, status: "good" as HealthStatus, trend: "flat" as const, trendDelta: 0 };
     merged.worstBasic = worst;
+
+    // Real vehicle OOS rate from carrier-level inspection totals. Falls back to
+    // the mock only when SMS has no totals (e.g., brand-new carriers).
+    const vehInsp = n(sb.vehicle_inspection_total);
+    const vehOos = n(sb.vehicle_oos_inspection_total);
+    const drvInsp = n(sb.driver_inspection_total);
+    const drvOos = n(sb.driver_oos_inspection_total);
+
     merged.safety = {
       ...mockTemplate.safety,
       basics,
+      inspectionsVehicle24mo: vehInsp || mockTemplate.safety.inspectionsVehicle24mo,
+      inspectionsDriver24mo: drvInsp || mockTemplate.safety.inspectionsDriver24mo,
+      vehicleOosRate: vehInsp > 0 ? +(vehOos / vehInsp * 100).toFixed(1) : mockTemplate.safety.vehicleOosRate,
+      driverOosRate: drvInsp > 0 ? +(drvOos / drvInsp * 100).toFixed(1) : mockTemplate.safety.driverOosRate,
       crashList: envelope.crashes_recent.slice(0, 10).map((cr) => ({
         id: s(cr.crash_id),
         date: formatFmcsaDate(s(cr.report_date)),
@@ -217,8 +268,8 @@ function mergeEnvelope(envelope: SubstrateEnvelope, mockTemplate: DashboardData)
         location: s(ins.location_desc) || s(ins.location),
         level: (n(ins.inspection_level) || 2) as 1 | 2 | 3 | 4 | 5 | 6,
         type: "vehicle+driver",
-        vehicleViolations: n(ins.vehicle_violation_total ?? ins.vehicle_viol_total),
-        driverViolations: n(ins.driver_violation_total ?? ins.driver_viol_total),
+        vehicleViolations: n(ins.vehicle_violation_total),
+        driverViolations: n(ins.driver_violation_total),
         ooss: n(ins.oos_total) > 0,
       })),
     };
