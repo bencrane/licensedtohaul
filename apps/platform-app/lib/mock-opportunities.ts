@@ -39,11 +39,24 @@ export type InsuranceQuote = {
   receivedAt?: string;
 };
 
+export type FinancingQuoteStatus =
+  | "available"
+  | "submitted"
+  | "contacted"
+  | "underwriting"
+  | "approved"
+  | "declined"
+  | "onboarding"
+  | "active"
+  | "pending"
+  | "received";
+
 export type FinancingQuote = {
   id: string;
   factorName: string;
+  factorSlug: string;
   type: "factoring" | "fuel-advance" | "working-capital";
-  status: "pending" | "received";
+  status: FinancingQuoteStatus;
   rate: string;
   fundingSpeed: string;
   recourseLabel: string;
@@ -280,8 +293,9 @@ export function getMockOpportunities(): CarrierOpportunities {
     {
       id: "fq1",
       factorName: "RTS Financial",
+      factorSlug: "rts-financial",
       type: "factoring",
-      status: "received",
+      status: "available",
       rate: "2.5% on invoices > $10K",
       fundingSpeed: "Same-day",
       recourseLabel: "Non-recourse",
@@ -292,8 +306,9 @@ export function getMockOpportunities(): CarrierOpportunities {
     {
       id: "fq2",
       factorName: "TBS Factoring",
+      factorSlug: "tbs-factoring",
       type: "factoring",
-      status: "received",
+      status: "available",
       rate: "2.9% flat",
       fundingSpeed: "Same-day",
       recourseLabel: "Recourse",
@@ -304,6 +319,7 @@ export function getMockOpportunities(): CarrierOpportunities {
     {
       id: "fq3",
       factorName: "Apex Capital",
+      factorSlug: "apex-capital",
       type: "factoring",
       status: "pending",
       rate: "—",
@@ -314,8 +330,9 @@ export function getMockOpportunities(): CarrierOpportunities {
     {
       id: "fq4",
       factorName: "BlueVine Trucking",
+      factorSlug: "bluevine-trucking",
       type: "working-capital",
-      status: "received",
+      status: "available",
       rate: "Prime + 4.5%",
       fundingSpeed: "48 hours",
       recourseLabel: "Personal guarantee",
