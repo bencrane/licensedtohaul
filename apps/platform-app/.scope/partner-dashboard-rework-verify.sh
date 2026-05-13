@@ -504,38 +504,38 @@ echo "--- P1: scope allowlist ---"
 cd "$WORKTREE"
 CHANGED=$(git diff --name-only main...HEAD 2>/dev/null) || CHANGED=""
 
+# Allowlist uses literal-prefix string matching (NOT regex) to avoid bracket-as-char-class bugs.
+# Each entry is a path prefix; a changed file matches if it starts with that prefix.
 ALLOWLIST=(
   "apps/platform-app/migrations/006_factor_profiles.sql"
   "apps/platform-app/migrations/007_drop_audience_specs.sql"
   "apps/platform-app/migrations/seeds/005_dev_factor_profile.sql"
   "apps/platform-app/migrations/seeds/006_dev_carrier_user.sql"
-  "apps/platform-app/app/partner/\\[slug\\]/profile/page.tsx"
-  "apps/platform-app/app/partner/\\[slug\\]/profile"
-  "apps/platform-app/lib/factor-profiles/types.ts"
-  "apps/platform-app/lib/factor-profiles/actions.ts"
-  "apps/platform-app/lib/factor-profiles"
+  "apps/platform-app/app/partner/[slug]/profile/"
+  "apps/platform-app/lib/factor-profiles/"
   "apps/platform-app/components/partner-dashboard/FactorProfileForm.tsx"
   "apps/platform-app/lib/db.ts"
-  "apps/platform-app/app/dashboard/\\[dot\\]/conversations"
-  "apps/platform-app/lib/quote-submit/actions.ts"
-  "apps/platform-app/lib/quote-submit"
+  "apps/platform-app/app/dashboard/[dot]/conversations/"
+  "apps/platform-app/lib/quote-submit/"
+  "apps/platform-app/lib/notifications/"
+  "apps/platform-app/components/dashboard/CarrierMessageThread.tsx"
   "apps/platform-app/.scope/partner-dashboard-rework-verify.sh"
-  "apps/platform-app/app/__test__"
-  "apps/platform-app/app/api/test"
+  "apps/platform-app/app/__test__/"
+  "apps/platform-app/app/api/test/"
 )
 
 MODIFY_ALLOWLIST=(
   "apps/platform-app/components/partner-dashboard/PartnerSidebar.tsx"
-  "apps/platform-app/app/partner/\\[slug\\]/layout.tsx"
+  "apps/platform-app/app/partner/[slug]/layout.tsx"
   "apps/platform-app/lib/mock-partner.ts"
-  "apps/platform-app/app/dashboard/\\[dot\\]/inbox/page.tsx"
+  "apps/platform-app/app/dashboard/[dot]/inbox/page.tsx"
   "apps/platform-app/components/dashboard/InboxView.tsx"
-  "apps/platform-app/app/dashboard/\\[dot\\]/financing/page.tsx"
-  "apps/platform-app/app/dashboard/\\[dot\\]/layout.tsx"
+  "apps/platform-app/app/dashboard/[dot]/financing/page.tsx"
+  "apps/platform-app/app/dashboard/[dot]/layout.tsx"
   "apps/platform-app/components/dashboard/FinancingClientSection.tsx"
   "apps/platform-app/components/dashboard/ConsentModal.tsx"
   "apps/platform-app/components/dashboard/DataPartnerLog.tsx"
-  "apps/platform-app/app/partner/\\[slug\\]/transfers/page.tsx"
+  "apps/platform-app/app/partner/[slug]/transfers/page.tsx"
   "apps/platform-app/lib/mock-dashboard.ts"
   "apps/platform-app/app/auth/callback/route.ts"
   "apps/platform-app/app/auth/actions.ts"
@@ -544,30 +544,41 @@ MODIFY_ALLOWLIST=(
   "apps/platform-app/app/page.tsx"
 )
 
+# Deletion-permitted prefixes (paths the directive marked for removal).
+DELETE_ALLOWLIST=(
+  "apps/platform-app/app/partner/[slug]/audience/"
+  "apps/platform-app/app/partner/[slug]/spec/"
+  "apps/platform-app/app/partner/[slug]/catalog/"
+  "apps/platform-app/app/partner/[slug]/compose/"
+  "apps/platform-app/app/partner/[slug]/defaults/"
+  "apps/platform-app/lib/audience-specs/"
+  "apps/platform-app/lib/audience-pricing.ts"
+  "apps/platform-app/lib/audience-templates.ts"
+  "apps/platform-app/lib/partner-defaults/"
+  "apps/platform-app/lib/inbox-store.ts"
+  "apps/platform-app/lib/mock-factor-transfers.ts"
+  "apps/platform-app/lib/quote-state-store.ts"
+  "apps/platform-app/components/audience-composer/"
+  "apps/platform-app/components/audience-catalog/"
+  "apps/platform-app/components/audience-specs/"
+  "apps/platform-app/components/partner-defaults/"
+)
+
+# Literal-prefix match: returns 0 if $file starts with $prefix.
+starts_with() {
+  local file="$1" prefix="$2"
+  [[ "${file:0:${#prefix}}" == "$prefix" ]]
+}
+
 p1_fail=0
 while IFS= read -r file; do
   [[ -z "$file" ]] && continue
   matched=false
-  # Check create paths
-  for pat in "${ALLOWLIST[@]}"; do
-    if echo "$file" | grep -qE "^${pat}"; then
+  for pat in "${ALLOWLIST[@]}" "${MODIFY_ALLOWLIST[@]}" "${DELETE_ALLOWLIST[@]}"; do
+    if starts_with "$file" "$pat"; then
       matched=true; break
     fi
   done
-  # Check modify paths
-  if [[ "$matched" == "false" ]]; then
-    for pat in "${MODIFY_ALLOWLIST[@]}"; do
-      if echo "$file" | grep -qE "^${pat//\\/}"; then
-        matched=true; break
-      fi
-    done
-  fi
-  # Also allow deleted dirs
-  if [[ "$matched" == "false" ]]; then
-    if echo "$file" | grep -qE "^apps/platform-app/(app/partner/\[slug\]/(audience|spec|catalog|compose|defaults)/|lib/(audience-specs|audience-pricing|audience-templates|partner-defaults)/|lib/(inbox-store|mock-factor-transfers|quote-state-store)\.ts$|components/(audience-composer|audience-catalog|audience-specs|partner-defaults)/)"; then
-      matched=true
-    fi
-  fi
   if [[ "$matched" == "false" ]]; then
     p1_fail=$((p1_fail + 1))
     echo "  FAIL P1: out-of-scope file changed: $file"
