@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// Test 2: partner sidebar renders exactly the new 7 sections, none of the old
+// Test 2: partner sidebar renders exactly the new 8 sections (+ Pipeline added in pipeline-lifecycle-v1), none of the old
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import React from 'react';
@@ -30,8 +30,8 @@ describe('PartnerSidebar', () => {
       }),
     );
 
-    const expectedItems = ['Overview', 'Carriers', 'NOAs', 'Disbursements', 'Reconciliation', 'Team', 'Billing'];
-    const forbiddenItems = ['Pipeline', 'Spec', 'Audience', 'Catalog', 'Compose', 'Defaults', 'Transfer inbox'];
+    const expectedItems = ['Overview', 'Carriers', 'Pipeline', 'NOAs', 'Disbursements', 'Reconciliation', 'Team', 'Billing'];
+    const forbiddenItems = ['Spec', 'Audience', 'Catalog', 'Compose', 'Defaults', 'Transfer inbox'];
 
     for (const label of expectedItems) {
       expect(screen.queryByText(label), `Expected "${label}" to be in sidebar`).not.toBeNull();

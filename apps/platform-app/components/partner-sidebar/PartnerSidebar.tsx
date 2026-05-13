@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   Truck,
+  Kanban,
   FileSignature,
   DollarSign,
   Calculator,
@@ -41,6 +42,11 @@ function buildNav(slug: string): NavSection[] {
           label: "Carriers",
           href: `${base}/carriers`,
           icon: <Truck className="h-4 w-4" />,
+        },
+        {
+          label: "Pipeline",
+          href: `${base}/pipeline`,
+          icon: <Kanban className="h-4 w-4" />,
         },
         {
           label: "NOAs",
