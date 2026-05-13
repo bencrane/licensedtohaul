@@ -137,29 +137,23 @@ export default function HomePage() {
       <section>
         <div className="mx-auto max-w-7xl px-6 py-20 md:py-24">
           <div className="border border-orange-200 bg-gradient-to-br from-orange-50 via-stone-50 to-stone-50 p-10 md:p-14">
-            <div className="grid gap-10 md:grid-cols-12 md:items-center">
-              <div className="md:col-span-8">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-orange-700">
-                  Claim your authority
-                </p>
-                <h2 className="font-display mt-3 text-4xl leading-tight text-stone-900 md:text-5xl text-balance">
-                  Your dashboard, in a few minutes.
-                </h2>
-                <p className="mt-4 max-w-xl text-stone-700">
-                  USDOT and email. We pull your live profile and send the
-                  dashboard link to your inbox.
-                </p>
-              </div>
-              <div className="md:col-span-4 md:text-right">
-                <Link
-                  href="/claim"
-                  className="inline-flex items-center justify-center gap-2 bg-orange-600 px-7 py-4 text-[15px] font-semibold text-white transition-colors hover:bg-orange-700"
-                >
-                  Claim Your Authority
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-              </div>
-            </div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-orange-700">
+              Claim your authority
+            </p>
+            <h2 className="font-display mt-3 text-4xl leading-tight text-stone-900 md:text-5xl text-balance">
+              Your dashboard, in a few minutes.
+            </h2>
+            <p className="mt-4 max-w-xl text-stone-700">
+              USDOT and email. We pull your live profile and send the
+              dashboard link to your inbox.
+            </p>
+            <Link
+              href="/claim"
+              className="group mt-8 inline-flex items-center justify-center gap-2 bg-orange-600 px-7 py-4 text-[15px] font-semibold text-white transition-colors hover:bg-orange-700"
+            >
+              Claim Your Authority
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+            </Link>
           </div>
         </div>
       </section>
