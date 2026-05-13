@@ -17,3 +17,16 @@ export interface MeterEventResult {
 export interface StripeBillingClient {
   emitMeterEvent(input: MeterEventInput): Promise<MeterEventResult>;
 }
+
+export interface OnboardFactorBillingInput {
+  factorSlug: string;
+  email: string;
+  platformFeeCents: number; // cents, e.g. 250000 = $2500
+  disbursementBps: number;  // e.g. 50
+}
+
+export interface OnboardFactorBillingResult {
+  stripeCustomerId: string;
+  stripeSubscriptionId: string;
+  stripeMeterId: string;
+}

@@ -26,7 +26,6 @@ import {
   getActiveSubmissions,
 } from "@/lib/quote-state-store";
 import { pushInboxMessage } from "@/lib/inbox-store";
-import { pushFactorTransfer } from "@/lib/mock-factor-transfers";
 
 const TYPE_STYLES = {
   factoring: { label: "Invoice factoring", chip: "border-violet-200 bg-violet-50 text-violet-800", icon: <FileText className="h-3 w-3" /> },
@@ -141,13 +140,6 @@ export default function FinancingClientSection({
       carrierDot: dot,
     });
     pushInboxMessage(dot, quote.factorName, quote.id);
-    pushFactorTransfer({
-      factorSlug: quote.factorSlug,
-      carrierDot: dot,
-      quoteId: quote.id,
-      submittedAt: new Date().toISOString(),
-      state: "submitted",
-    });
   }
 
   return (

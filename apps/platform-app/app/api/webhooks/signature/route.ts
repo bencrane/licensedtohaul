@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { Pool } from 'pg';
-import { getSignatureProvider } from '@/lib/signature/index';
+import { getSignatureProvider, resetSignatureProvider } from '@/lib/signature/index';
+import { DropboxSignProvider } from '@/lib/signature/dropbox-sign';
 import { getFactorDisplayName } from '@/lib/factor-of-record/types';
 import { recordForTransition, writeAuditLog } from '@/lib/factor-of-record/queries';
 
@@ -22,6 +23,14 @@ export async function POST(req: Request): Promise<Response> {
   const SCHEMA = process.env.LTH_SCHEMA ?? 'lth';
   const db = pool();
 
+  // Dispatch on ?provider= query param or X-Signature-Provider header.
+  // Default to the configured provider (v1 compatible).
+  const url = new URL(req.url);
+  const providerParam =
+    url.searchParams.get('provider') ??
+    req.headers.get('x-signature-provider') ??
+    null;
+
   try {
     const rawBody = Buffer.from(await req.arrayBuffer());
     const headersObj: Record<string, string> = {};
@@ -29,11 +38,25 @@ export async function POST(req: Request): Promise<Response> {
       headersObj[key] = value;
     });
 
-    const provider = getSignatureProvider();
+    let provider;
+    if (providerParam === 'dropbox-sign') {
+      // Use a real DropboxSignProvider for HMAC check regardless of env singleton
+      const apiKey = process.env.DROPBOX_SIGN_API_KEY;
+      if (!apiKey) {
+        return NextResponse.json(
+          { error: 'missing DROPBOX_SIGN_API_KEY in Doppler' },
+          { status: 503 },
+        );
+      }
+      provider = new DropboxSignProvider();
+    } else {
+      provider = getSignatureProvider();
+    }
+
     const { verified, events } = provider.handleWebhook(rawBody, headersObj);
 
     if (!verified) {
-      return NextResponse.json({ error: 'webhook verification failed' }, { status: 400 });
+      return NextResponse.json({ error: 'webhook verification failed' }, { status: 401 });
     }
 
     for (const event of events) {
@@ -41,6 +64,10 @@ export async function POST(req: Request): Promise<Response> {
         const externalId = event.envelope.externalId;
         const completedAt = event.envelope.completedAt ?? new Date();
         const signerIp = event.envelope.signers[0]?.ip ?? null;
+
+        // For Dropbox Sign webhooks, externalId comes from metadata in the provider —
+        // if empty we skip (provider couldn't extract it from the webhook payload alone)
+        if (!externalId) continue;
 
         // Look up the envelope row
         const { rows: envRows } = await db.query<{
@@ -54,10 +81,7 @@ export async function POST(req: Request): Promise<Response> {
           [externalId],
         );
 
-        if (!envRows[0]) {
-          // Unknown envelope — skip
-          continue;
-        }
+        if (!envRows[0]) continue;
 
         const envRow = envRows[0];
 
