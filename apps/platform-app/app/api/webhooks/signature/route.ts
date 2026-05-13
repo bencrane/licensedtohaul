@@ -8,8 +8,8 @@ import { recordForTransition, writeAuditLog } from '@/lib/factor-of-record/queri
 export const dynamic = 'force-dynamic';
 
 function getPool(): Pool {
-  const connString = process.env.HQX_DB_URL_POOLED;
-  if (!connString) throw new Error('HQX_DB_URL_POOLED not set');
+  const connString = process.env.LTH_DB_POOLED_URL;
+  if (!connString) throw new Error('LTH_DB_POOLED_URL not set');
   return new Pool({ connectionString: connString, max: 4 });
 }
 
@@ -20,8 +20,7 @@ function pool(): Pool {
 }
 
 export async function POST(req: Request): Promise<Response> {
-  const SCHEMA = process.env.LTH_SCHEMA ?? 'lth';
-  const db = pool();
+    const db = pool();
 
   // Dispatch on ?provider= query param or X-Signature-Provider header.
   // Default to the configured provider (v1 compatible).
@@ -76,7 +75,7 @@ export async function POST(req: Request): Promise<Response> {
           factor_slug: string;
         }>(
           `SELECT id, carrier_dot, factor_slug
-           FROM "${SCHEMA}".noa_envelopes
+           FROM noa_envelopes
            WHERE external_id = $1`,
           [externalId],
         );
@@ -87,7 +86,7 @@ export async function POST(req: Request): Promise<Response> {
 
         // Update envelope state
         await db.query(
-          `UPDATE "${SCHEMA}".noa_envelopes
+          `UPDATE noa_envelopes
            SET state = 'completed', signed_at = $1, signer_ip = $2, updated_at = now()
            WHERE id = $3`,
           [completedAt, signerIp, envRow.id],
@@ -141,7 +140,7 @@ export async function POST(req: Request): Promise<Response> {
 
         // Queue billing event
         await db.query(
-          `INSERT INTO "${SCHEMA}".factor_billing_events
+          `INSERT INTO factor_billing_events
              (factor_slug, event_name, payload)
            VALUES ($1, 'noa.transition', $2::jsonb)`,
           [

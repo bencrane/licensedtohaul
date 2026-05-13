@@ -12,7 +12,7 @@
  * inbox, feed events, and notification prefs are NOT in the substrate —
  * those still flow from the mock until separate substrates ship.
  *
- * When env.HQX_API_BASE_URL is unset OR the upstream call fails, falls
+ * When env.FMCSA_API_BASE_URL is unset OR the upstream call fails, falls
  * back to getMockDashboard() so the page never breaks. That makes local
  * development against the static fixture continue to work.
  */
@@ -248,13 +248,13 @@ async function _getAccessToken(): Promise<string | null> {
 /**
  * Primary dashboard accessor — used by the dashboard page server-side.
  * Forwards the user's Supabase JWT to hq-x. Falls back to mock when
- * env.HQX_API_BASE_URL is unset or the upstream isn't reachable.
+ * env.FMCSA_API_BASE_URL is unset or the upstream isn't reachable.
  */
 export async function getDashboard(dotNumber: string): Promise<DashboardData> {
   const cleanDot = (dotNumber ?? "").replace(/\D/g, "");
   const mockTemplate = getMockDashboard(cleanDot);
 
-  const baseUrl = env.HQX_API_BASE_URL;
+  const baseUrl = env.FMCSA_API_BASE_URL;
   if (!baseUrl || !cleanDot) {
     return mockTemplate;
   }

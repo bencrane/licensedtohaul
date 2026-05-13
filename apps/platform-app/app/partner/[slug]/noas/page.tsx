@@ -2,8 +2,8 @@ import { notFound } from "next/navigation";
 import { Pool } from "pg";
 
 function getPool(): Pool {
-  const connString = process.env.HQX_DB_URL_POOLED;
-  if (!connString) throw new Error("HQX_DB_URL_POOLED not set");
+  const connString = process.env.LTH_DB_POOLED_URL;
+  if (!connString) throw new Error("LTH_DB_POOLED_URL not set");
   return new Pool({ connectionString: connString, max: 2 });
 }
 
@@ -35,11 +35,9 @@ export default async function NoasPage({ params }: Props) {
   const { slug } = await params;
   if (!slug) notFound();
 
-  const SCHEMA = process.env.LTH_SCHEMA ?? "lth";
-
   const { rows } = await pool().query<NoaRow>(
     `SELECT id, carrier_dot, state, provider, created_at, signed_at
-     FROM "${SCHEMA}".noa_envelopes
+     FROM noa_envelopes
      WHERE factor_slug = $1
      ORDER BY created_at DESC`,
     [slug],

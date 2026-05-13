@@ -2,8 +2,8 @@ import { Pool } from 'pg';
 import { getStripeBillingClient } from './index';
 
 function getPool(): Pool {
-  const connString = process.env.HQX_DB_URL_POOLED;
-  if (!connString) throw new Error('HQX_DB_URL_POOLED not set');
+  const connString = process.env.LTH_DB_POOLED_URL;
+  if (!connString) throw new Error('LTH_DB_POOLED_URL not set');
   return new Pool({ connectionString: connString, max: 4 });
 }
 
@@ -16,8 +16,7 @@ function pool(): Pool {
 export async function emitPendingBillingEvents(
   opts?: { pool?: Pool },
 ): Promise<{ emittedCount: number; failedCount: number }> {
-  const SCHEMA = process.env.LTH_SCHEMA ?? 'lth';
-  const db = opts?.pool ?? pool();
+    const db = opts?.pool ?? pool();
   const billing = getStripeBillingClient();
 
   // Fetch pending events with their stripe customer mapping
@@ -36,8 +35,8 @@ export async function emitPendingBillingEvents(
             sc.stripe_meter_id_noa_transition,
             sc.stripe_meter_id_submission_cleared,
             sc.stripe_meter_id_disbursement_skim
-     FROM "${SCHEMA}".factor_billing_events be
-     LEFT JOIN "${SCHEMA}".factor_stripe_customers sc ON sc.factor_slug = be.factor_slug
+     FROM factor_billing_events be
+     LEFT JOIN factor_stripe_customers sc ON sc.factor_slug = be.factor_slug
      WHERE be.emitted = false
      ORDER BY be.created_at ASC`,
   );
@@ -79,7 +78,7 @@ export async function emitPendingBillingEvents(
       });
 
       await db.query(
-        `UPDATE "${SCHEMA}".factor_billing_events
+        `UPDATE factor_billing_events
          SET emitted = true, emitted_at = now(), stripe_event_id = $1
          WHERE id = $2`,
         [result.id, evt.id],

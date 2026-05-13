@@ -3,8 +3,8 @@ import Link from "next/link";
 import { Pool } from "pg";
 
 function getPool(): Pool {
-  const connString = process.env.HQX_DB_URL_POOLED;
-  if (!connString) throw new Error("HQX_DB_URL_POOLED not set");
+  const connString = process.env.LTH_DB_POOLED_URL;
+  if (!connString) throw new Error("LTH_DB_POOLED_URL not set");
   return new Pool({ connectionString: connString, max: 2 });
 }
 
@@ -38,14 +38,12 @@ export default async function CarriersPage({ params }: Props) {
   const { slug } = await params;
   if (!slug) notFound();
 
-  const SCHEMA = process.env.LTH_SCHEMA ?? "lth";
-
   const { rows } = await pool().query<ForRow>(
     `SELECT f.id, f.carrier_dot, f.factor_display_name, f.status,
             f.assigned_at, f.revoked_at, f.noa_envelope_id,
             e.state AS noa_state
-     FROM "${SCHEMA}".factor_of_record f
-     LEFT JOIN "${SCHEMA}".noa_envelopes e ON e.id = f.noa_envelope_id
+     FROM factor_of_record f
+     LEFT JOIN noa_envelopes e ON e.id = f.noa_envelope_id
      WHERE f.factor_slug = $1
      ORDER BY f.assigned_at DESC`,
     [slug],

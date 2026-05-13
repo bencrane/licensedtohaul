@@ -13,7 +13,7 @@ beforeAll(async () => {
   client = harness.client;
   cleanup = harness.cleanup;
   vi.stubEnv('LTH_SCHEMA', schemaName);
-  vi.stubEnv('HQX_DB_URL_POOLED', process.env.HQX_DB_URL_POOLED!);
+  vi.stubEnv('LTH_DB_POOLED_URL', process.env.LTH_DB_POOLED_URL!);
 
   // Same seed as Test 5
   const { rows: envRows } = await client.query<{ id: string }>(
@@ -53,7 +53,7 @@ afterAll(async () => {
 describe('deal room carrier side', () => {
   it('carrier can see same FoR + NOA and 2 messages', async () => {
     const { Pool } = await import('pg');
-    const pool = new Pool({ connectionString: process.env.HQX_DB_URL_POOLED!, max: 1 });
+    const pool = new Pool({ connectionString: process.env.LTH_DB_POOLED_URL!, max: 1 });
 
     try {
       // From carrier perspective: active FoR for apex-capital

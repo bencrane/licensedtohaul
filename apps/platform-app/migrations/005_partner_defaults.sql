@@ -3,8 +3,8 @@
 -- partner doesn't re-pick excluded states / floors / hazmat preference
 -- on every new audience.
 
-ALTER TABLE lth.organizations
+ALTER TABLE organizations
   ADD COLUMN IF NOT EXISTS partner_defaults jsonb NOT NULL DEFAULT '{}'::jsonb;
 
-COMMENT ON COLUMN lth.organizations.partner_defaults IS
+COMMENT ON COLUMN organizations.partner_defaults IS
   'Partner-side defaults (excluded states/equipment, floors, hazmat, default window). Audience composer reads these as initial state.';

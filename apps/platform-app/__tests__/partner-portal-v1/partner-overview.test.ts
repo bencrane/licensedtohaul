@@ -13,7 +13,7 @@ beforeAll(async () => {
   client = harness.client;
   cleanup = harness.cleanup;
   vi.stubEnv('LTH_SCHEMA', schemaName);
-  vi.stubEnv('HQX_DB_URL_POOLED', process.env.HQX_DB_URL_POOLED!);
+  vi.stubEnv('LTH_DB_POOLED_URL', process.env.LTH_DB_POOLED_URL!);
 
   // Seed: 3 active FoR rows for apex-capital
   for (const dot of ['1111111', '2222222', '3333333']) {
@@ -53,7 +53,7 @@ describe('partner overview page data', () => {
   it('shows 3 active carriers and $12,000 disbursed with 50 bps skim', async () => {
     // Import pool fresh with test schema
     const { Pool } = await import('pg');
-    const pool = new Pool({ connectionString: process.env.HQX_DB_URL_POOLED!, max: 1 });
+    const pool = new Pool({ connectionString: process.env.LTH_DB_POOLED_URL!, max: 1 });
 
     try {
       // Active carriers

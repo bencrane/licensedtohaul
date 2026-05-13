@@ -13,7 +13,7 @@ beforeAll(async () => {
   client = harness.client;
   cleanup = harness.cleanup;
   vi.stubEnv('LTH_SCHEMA', schemaName);
-  vi.stubEnv('HQX_DB_URL_POOLED', process.env.HQX_DB_URL_POOLED!);
+  vi.stubEnv('LTH_DB_POOLED_URL', process.env.LTH_DB_POOLED_URL!);
 
   // Seed billing config: cycle starts 2026-04-01 (Q2 2026)
   await client.query(
@@ -42,7 +42,7 @@ afterAll(async () => {
 describe('getReconciliation', () => {
   it('computes correct quarter window and financials for Q2 2026', async () => {
     const { Pool } = await import('pg');
-    const pool = new Pool({ connectionString: process.env.HQX_DB_URL_POOLED!, max: 1 });
+    const pool = new Pool({ connectionString: process.env.LTH_DB_POOLED_URL!, max: 1 });
 
     try {
       const { getReconciliation, formatCents } = await import('@/lib/reconciliation/index');
@@ -51,8 +51,7 @@ describe('getReconciliation', () => {
       const asOf = new Date('2026-05-13T12:00:00Z');
       const rec = await getReconciliation('apex-capital', asOf, {
         pool: pool as unknown as import('pg').Pool,
-        schema: schemaName,
-      });
+        });
 
       // Window
       expect(rec.windowStart).toBe('2026-04-01');

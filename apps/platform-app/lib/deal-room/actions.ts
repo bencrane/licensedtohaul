@@ -3,8 +3,8 @@ import type { SendDealRoomMessageInput, GetDealRoomMessagesInput, DealRoomMessag
 import { getOrCreateThread, insertMessage, getMessages } from './queries';
 
 function getPool(): Pool {
-  const connString = process.env.HQX_DB_URL_POOLED;
-  if (!connString) throw new Error('HQX_DB_URL_POOLED not set');
+  const connString = process.env.LTH_DB_POOLED_URL;
+  if (!connString) throw new Error('LTH_DB_POOLED_URL not set');
   return new Pool({ connectionString: connString, max: 4 });
 }
 

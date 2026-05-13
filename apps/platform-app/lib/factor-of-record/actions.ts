@@ -7,8 +7,8 @@ import { getFactorDisplayName } from './types';
 import { writeAuditLog } from './queries';
 
 function getPool(): Pool {
-  const connString = process.env.HQX_DB_URL_POOLED;
-  if (!connString) throw new Error('HQX_DB_URL_POOLED not set');
+  const connString = process.env.LTH_DB_POOLED_URL;
+  if (!connString) throw new Error('LTH_DB_POOLED_URL not set');
   return new Pool({ connectionString: connString, max: 4 });
 }
 
@@ -33,8 +33,7 @@ export async function initiateNoaSignature(
   input: InitiateNoaInput,
   opts?: { pool?: Pool },
 ): Promise<InitiateNoaResult> {
-  const SCHEMA = process.env.LTH_SCHEMA ?? 'lth';
-  const db = opts?.pool ?? defaultPool();
+    const db = opts?.pool ?? defaultPool();
   const provider = getSignatureProvider();
 
   const externalId = randomUUID();
@@ -56,7 +55,7 @@ export async function initiateNoaSignature(
 
   // Persist envelope row
   const { rows: envRows } = await db.query<{ id: string }>(
-    `INSERT INTO "${SCHEMA}".noa_envelopes
+    `INSERT INTO noa_envelopes
        (external_id, carrier_dot, factor_slug, load_id, provider, provider_envelope_id, state)
      VALUES ($1, $2, $3, $4, $5, $6, $7)
      RETURNING id`,

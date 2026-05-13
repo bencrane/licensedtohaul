@@ -3,8 +3,8 @@ import { onboardFactorToStripe } from './stripe';
 import type { OnboardFactorBillingInput, OnboardFactorBillingResult } from './types';
 
 function getPool(): Pool {
-  const connString = process.env.HQX_DB_URL_POOLED;
-  if (!connString) throw new Error('HQX_DB_URL_POOLED not set');
+  const connString = process.env.LTH_DB_POOLED_URL;
+  if (!connString) throw new Error('LTH_DB_POOLED_URL not set');
   return new Pool({ connectionString: connString, max: 2 });
 }
 
@@ -17,16 +17,15 @@ function defaultPool(): Pool {
 /**
  * Onboard a factor onto Stripe Billing:
  * - Creates Stripe customer + quarterly subscription + disbursement skim meter
- * - Persists IDs to lth.factor_stripe_customers
- * - Persists billing config to lth.factor_billing_config
+ * - Persists IDs to factor_stripe_customers
+ * - Persists billing config to factor_billing_config
  * Requires STRIPE_API_KEY in environment.
  */
 export async function onboardFactorBilling(
   input: OnboardFactorBillingInput,
   opts?: { pool?: Pool },
 ): Promise<OnboardFactorBillingResult> {
-  const SCHEMA = process.env.LTH_SCHEMA ?? 'lth';
-  const db = opts?.pool ?? defaultPool();
+    const db = opts?.pool ?? defaultPool();
 
   const apiKey = process.env.STRIPE_API_KEY;
   if (!apiKey || apiKey === 'sk_test_fake' || apiKey === '') {
@@ -37,7 +36,7 @@ export async function onboardFactorBilling(
 
   // Upsert factor_stripe_customers
   await db.query(
-    `INSERT INTO "${SCHEMA}".factor_stripe_customers
+    `INSERT INTO factor_stripe_customers
        (factor_slug, stripe_customer_id, stripe_subscription_id, stripe_meter_id_disbursement_skim)
      VALUES ($1, $2, $3, $4)
      ON CONFLICT (factor_slug) DO UPDATE
@@ -50,7 +49,7 @@ export async function onboardFactorBilling(
 
   // Upsert factor_billing_config
   await db.query(
-    `INSERT INTO "${SCHEMA}".factor_billing_config
+    `INSERT INTO factor_billing_config
        (factor_slug, platform_fee_cents, disbursement_bps)
      VALUES ($1, $2, $3)
      ON CONFLICT (factor_slug) DO UPDATE

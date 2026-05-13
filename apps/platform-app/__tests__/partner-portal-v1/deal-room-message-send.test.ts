@@ -13,7 +13,7 @@ beforeAll(async () => {
   client = harness.client;
   cleanup = harness.cleanup;
   vi.stubEnv('LTH_SCHEMA', schemaName);
-  vi.stubEnv('HQX_DB_URL_POOLED', process.env.HQX_DB_URL_POOLED!);
+  vi.stubEnv('LTH_DB_POOLED_URL', process.env.LTH_DB_POOLED_URL!);
 
   // Seed FoR (required for context; thread has no FK to FoR but good practice)
   await client.query(
@@ -30,7 +30,7 @@ afterAll(async () => {
 describe('sendDealRoomMessage + getDealRoomMessages', () => {
   it('creates a deal_room_messages row and getDealRoomMessages returns 1 message', async () => {
     const { Pool } = await import('pg');
-    const pool = new Pool({ connectionString: process.env.HQX_DB_URL_POOLED!, max: 1 });
+    const pool = new Pool({ connectionString: process.env.LTH_DB_POOLED_URL!, max: 1 });
 
     try {
       const { sendDealRoomMessage, getDealRoomMessages } = await import('@/lib/deal-room/actions');
