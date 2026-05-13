@@ -1,4 +1,6 @@
 // Test 1: legacy lead-broker routes/components/libs are gone
+// Note: app/partner/[slug]/pipeline was removed in v2 (lead-broker framing) and re-added in
+// partner-pipeline-lifecycle-v1 with carrier-lifecycle framing. It is intentionally present.
 import { describe, it, expect } from 'vitest';
 import { existsSync, readdirSync } from 'node:fs';
 import path from 'node:path';
@@ -14,14 +16,13 @@ function fileExists(rel: string): boolean {
 }
 
 describe('legacy routes removed', () => {
-  it('partner slug sub-routes: no audience/catalog/compose/defaults/spec/pipeline/transfers', () => {
+  it('partner slug sub-routes: no audience/catalog/compose/defaults/spec/transfers', () => {
     const legacyRouteDirs = [
       'app/partner/[slug]/audience',
       'app/partner/[slug]/catalog',
       'app/partner/[slug]/compose',
       'app/partner/[slug]/defaults',
       'app/partner/[slug]/spec',
-      'app/partner/[slug]/pipeline',
       'app/partner/[slug]/transfers',
     ];
     for (const d of legacyRouteDirs) {
