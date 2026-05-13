@@ -113,7 +113,7 @@ export default function CarrierSidebar({ dot, carrierName }: Props) {
   const shell = useSidebar();
 
   return (
-    <aside className="sticky top-0 flex h-screen w-64 shrink-0 flex-col border-r border-line bg-stone-50/80 backdrop-blur">
+    <aside className="sticky top-0 flex h-screen w-64 shrink-0 flex-col">
       <div className="flex items-center justify-between border-b border-line px-5 py-4">
         <Wordmark />
         {shell && (
