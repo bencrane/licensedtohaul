@@ -1,10 +1,14 @@
+/**
+ * Updated for Documenso v2 Platform: createEnvelope (file-based path) uses /api/v2/documents,
+ * auth header is api_<key> (not Bearer), getEnvelope uses /api/v2/documents/{id}.
+ */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 // Mock fetch globally
 const fetchMock = vi.fn();
 vi.stubGlobal('fetch', fetchMock);
 
-describe('DocumensoProvider.createEnvelope', () => {
+describe('DocumensoProvider.createEnvelope (v2 Platform)', () => {
   beforeEach(() => {
     vi.resetModules();
     fetchMock.mockReset();
@@ -17,13 +21,13 @@ describe('DocumensoProvider.createEnvelope', () => {
     vi.unstubAllEnvs();
   });
 
-  it('POSTs to /api/v1/documents with correct shape', async () => {
+  it('POSTs to /api/v2/documents with correct shape and api_<key> auth', async () => {
     const { DocumensoProvider } = await import('@/lib/signature/documenso');
 
     fetchMock.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
-        id: 42,
+        id: '42',
         status: 'PENDING',
         recipients: [
           { id: 1, name: 'Test Carrier', email: 'carrier@test.com', role: 'SIGNER', token: 'abc123tok' },
@@ -41,8 +45,11 @@ describe('DocumensoProvider.createEnvelope', () => {
 
     expect(fetchMock).toHaveBeenCalledOnce();
     const [url, opts] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(url).toBe('https://app.documenso.com/api/v1/documents');
+    expect(url).toBe('https://app.documenso.com/api/v2/documents');
     expect(opts.method).toBe('POST');
+
+    const headers = opts.headers as Record<string, string>;
+    expect(headers['Authorization']).toBe('api_test-api-key-123');
 
     const body = JSON.parse(opts.body as string) as Record<string, unknown>;
     expect(body.title).toBe('Notice of Assignment — Apex Capital');
@@ -59,7 +66,7 @@ describe('DocumensoProvider.createEnvelope', () => {
     fetchMock.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
-        id: 99,
+        id: '99',
         status: 'PENDING',
         recipients: [
           { id: 1, name: 'Carrier', email: 'c@test.com', role: 'SIGNER', token: 'mytoken456' },
@@ -76,7 +83,6 @@ describe('DocumensoProvider.createEnvelope', () => {
     });
 
     expect(result.signUrls['carrier']).toBe('https://app.documenso.com/sign/mytoken456');
-    // Assert URL shape ends with /sign/<token>
     expect(result.signUrls['carrier']).toMatch(/\/sign\/[a-zA-Z0-9]+$/);
   });
 

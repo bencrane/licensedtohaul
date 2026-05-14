@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual } from 'node:crypto';
+import { timingSafeEqual } from 'node:crypto';
 import type {
   SignatureProvider,
   CreateEnvelopeInput,
@@ -7,11 +7,12 @@ import type {
   WebhookVerificationResult,
   EnvelopeStatus,
   NormalizedSignatureEvent,
+  CreateDocumentFromTemplateInput,
+  CreateDocumentFromTemplateResult,
 } from './types';
 
 function getApiUrl(): string {
-  const url = process.env.DOCUMENSO_API_URL;
-  if (!url) throw new Error('Missing DOCUMENSO_API_URL');
+  const url = process.env.DOCUMENSO_API_URL ?? 'https://app.documenso.com';
   return url.replace(/\/$/, '');
 }
 
@@ -19,6 +20,13 @@ function getApiKey(): string {
   const key = process.env.DOCUMENSO_API_KEY;
   if (!key) throw new Error('Missing DOCUMENSO_API_KEY');
   return key;
+}
+
+function authHeader(): Record<string, string> {
+  return {
+    Authorization: `api_${getApiKey()}`,
+    'Content-Type': 'application/json',
+  };
 }
 
 function mapDocumensoStatus(status: string | undefined): EnvelopeStatus {
@@ -49,62 +57,121 @@ interface DocumensoRecipient {
 }
 
 interface DocumensoDocumentResponse {
-  id: number;
+  id: string | number;
   externalId?: string | null;
   status: string;
   recipients: DocumensoRecipient[];
 }
 
 /**
- * DocumensoProvider — implements SignatureProvider against the Documenso v1 REST API.
- * Env vars required:
- *   DOCUMENSO_API_URL  — e.g. https://app.documenso.com
- *   DOCUMENSO_API_KEY  — Bearer token
- *   DOCUMENSO_WEBHOOK_SECRET — for HMAC verify
+ * DocumensoProvider — implements SignatureProvider against the Documenso v2 Platform API.
+ * Env vars:
+ *   DOCUMENSO_API_URL  — e.g. https://app.documenso.com (default)
+ *   DOCUMENSO_API_KEY  — auth key (header value: api_<key>)
+ *   DOCUMENSO_WEBHOOK_SECRET — shared secret for webhook verification via X-Documenso-Secret
  */
 export class DocumensoProvider implements SignatureProvider {
   readonly name = 'documenso' as const;
 
-  private authHeader(): Record<string, string> {
+  /**
+   * createDocumentFromTemplate — Documenso v2 Platform path.
+   * POST /api/v2/template/use with { templateId, recipients, externalId?, distributeDocument?, prefillFields? }
+   * Response includes per-recipient signing tokens for embedded signing.
+   */
+  async createDocumentFromTemplate(
+    input: CreateDocumentFromTemplateInput,
+  ): Promise<CreateDocumentFromTemplateResult> {
+    const apiUrl = getApiUrl();
+
+    const body: Record<string, unknown> = {
+      templateId: input.templateId,
+      recipients: input.signers.map((s) => ({
+        id: s.recipientId,
+        email: s.email,
+        name: s.name,
+      })),
+      distributeDocument: input.distributeDocument ?? true,
+    };
+
+    if (input.externalId) body.externalId = input.externalId;
+    if (input.prefillFields) body.prefillFields = input.prefillFields;
+
+    const res = await fetch(`${apiUrl}/api/v2/template/use`, {
+      method: 'POST',
+      headers: authHeader(),
+      body: JSON.stringify(body),
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`Documenso createDocumentFromTemplate failed (${res.status}): ${text}`);
+    }
+
+    const data = (await res.json()) as DocumensoDocumentResponse;
+
+    const recipients: CreateDocumentFromTemplateResult['recipients'] = (
+      data.recipients ?? []
+    ).map((r) => ({
+      role: r.role?.toLowerCase() ?? 'carrier',
+      email: r.email,
+      signingToken: r.token ?? '',
+    }));
+
     return {
-      Authorization: `Bearer ${getApiKey()}`,
-      'Content-Type': 'application/json',
+      documentId: String(data.id),
+      recipients,
     };
   }
 
   async createEnvelope(input: CreateEnvelopeInput): Promise<CreateEnvelopeResult> {
     const apiUrl = getApiUrl();
 
-    const recipients = input.signers.map((s, i) => ({
-      name: s.name,
-      email: s.email,
-      role: 'SIGNER',
-      // Preserve role label in metadata for signUrls keying
-      _role: s.role,
-      orderId: i + 1,
-    }));
+    // If a templateId is provided, use createDocumentFromTemplate
+    if (input.templateId) {
+      // For legacy createEnvelope path with templateId, we need recipientId.
+      // Map signers to template recipients by order (carrier=0, factor=1).
+      const result = await this.createDocumentFromTemplate({
+        templateId: Number(input.templateId),
+        externalId: input.externalId,
+        distributeDocument: true,
+        signers: input.signers.map((s, i) => ({
+          recipientId: i + 1, // convention: template recipient IDs are 1-indexed
+          role: s.role,
+          name: s.name,
+          email: s.email,
+        })),
+      });
 
+      const signUrls: Record<string, string> = {};
+      for (const r of result.recipients) {
+        signUrls[r.role] = `${apiUrl}/sign/${r.signingToken}`;
+      }
+
+      return {
+        providerEnvelopeId: result.documentId,
+        signUrls,
+        status: 'sent',
+      };
+    }
+
+    // File-based path (no template)
     const body: Record<string, unknown> = {
       title: input.subject,
       externalId: input.externalId,
-      recipients: recipients.map((r) => ({
-        name: r.name,
-        email: r.email,
-        role: r.role,
+      recipients: input.signers.map((s) => ({
+        name: s.name,
+        email: s.email,
+        role: 'SIGNER',
       })),
     };
-
-    if (input.templateId) {
-      body.templateId = input.templateId;
-    }
 
     if (input.expiresAt) {
       body.expiresAt = input.expiresAt.toISOString();
     }
 
-    const res = await fetch(`${apiUrl}/api/v1/documents`, {
+    const res = await fetch(`${apiUrl}/api/v2/documents`, {
       method: 'POST',
-      headers: this.authHeader(),
+      headers: authHeader(),
       body: JSON.stringify(body),
     });
 
@@ -115,7 +182,6 @@ export class DocumensoProvider implements SignatureProvider {
 
     const data = (await res.json()) as DocumensoDocumentResponse;
 
-    // Build signUrls: for embedded mode, assemble ${apiUrl}/sign/${token}
     const signUrls: Record<string, string> = {};
     for (let i = 0; i < input.signers.length; i++) {
       const signer = input.signers[i];
@@ -135,9 +201,9 @@ export class DocumensoProvider implements SignatureProvider {
   async getEnvelope(providerEnvelopeId: string): Promise<EnvelopeSnapshot> {
     const apiUrl = getApiUrl();
 
-    const res = await fetch(`${apiUrl}/api/v1/documents/${providerEnvelopeId}`, {
+    const res = await fetch(`${apiUrl}/api/v2/documents/${providerEnvelopeId}`, {
       method: 'GET',
-      headers: this.authHeader(),
+      headers: authHeader(),
     });
 
     if (!res.ok) {
@@ -181,9 +247,9 @@ export class DocumensoProvider implements SignatureProvider {
   async voidEnvelope(providerEnvelopeId: string, _reason: string): Promise<void> {
     const apiUrl = getApiUrl();
 
-    const res = await fetch(`${apiUrl}/api/v1/documents/${providerEnvelopeId}`, {
+    const res = await fetch(`${apiUrl}/api/v2/documents/${providerEnvelopeId}`, {
       method: 'DELETE',
-      headers: this.authHeader(),
+      headers: authHeader(),
     });
 
     if (!res.ok && res.status !== 404) {
@@ -198,9 +264,9 @@ export class DocumensoProvider implements SignatureProvider {
   ): Promise<{ url: string; expiresAt: Date }> {
     const apiUrl = getApiUrl();
 
-    const res = await fetch(`${apiUrl}/api/v1/documents/${providerEnvelopeId}/download`, {
+    const res = await fetch(`${apiUrl}/api/v2/documents/${providerEnvelopeId}/download`, {
       method: 'GET',
-      headers: this.authHeader(),
+      headers: authHeader(),
     });
 
     if (!res.ok) {
@@ -217,9 +283,9 @@ export class DocumensoProvider implements SignatureProvider {
   }
 
   /**
-   * Verify Documenso webhook HMAC.
-   * Header: X-Documenso-Signature = hex(HMAC-SHA256(rawBody, DOCUMENSO_WEBHOOK_SECRET))
-   * Use timing-safe compare to prevent timing attacks.
+   * Verify Documenso webhook via X-Documenso-Secret header (plain shared-secret equality).
+   * Documenso sends the literal configured secret in the header — NOT HMAC.
+   * Uses timingSafeEqual to prevent timing attacks.
    */
   handleWebhook(
     rawBody: Buffer,
@@ -230,22 +296,23 @@ export class DocumensoProvider implements SignatureProvider {
       return { verified: false, events: [] };
     }
 
-    const signature =
-      headers['x-documenso-signature'] ?? headers['X-Documenso-Signature'] ?? '';
+    // Case-insensitive header lookup
+    const headerValue =
+      headers['x-documenso-secret'] ??
+      headers['X-Documenso-Secret'] ??
+      '';
 
-    if (!signature) {
+    if (!headerValue) {
       return { verified: false, events: [] };
     }
 
-    // Compute expected: HMAC-SHA256(rawBody, secret)
-    const expected = createHmac('sha256', secret).update(rawBody).digest('hex');
-
+    // Constant-time compare
     let verified = false;
     try {
-      const expectedBuf = Buffer.from(expected, 'hex');
-      const sigBuf = Buffer.from(signature, 'hex');
-      if (expectedBuf.length === sigBuf.length) {
-        verified = timingSafeEqual(expectedBuf, sigBuf);
+      const secretBuf = Buffer.from(secret, 'utf-8');
+      const headerBuf = Buffer.from(headerValue, 'utf-8');
+      if (secretBuf.length === headerBuf.length) {
+        verified = timingSafeEqual(secretBuf, headerBuf);
       }
     } catch {
       verified = false;
@@ -264,8 +331,10 @@ export class DocumensoProvider implements SignatureProvider {
     }
 
     const events: NormalizedSignatureEvent[] = [];
+    // Documenso v2 webhook shape: { event, payload: { id, externalId, recipients, ... }, createdAt }
     const docEvent = payload.event as string | undefined;
-    const docData = payload.data as Record<string, unknown> | undefined;
+    // Support both v2 ({ event, payload }) and v1 ({ event, data }) shapes
+    const docData = (payload.payload ?? payload.data) as Record<string, unknown> | undefined;
 
     const envSnapshot: EnvelopeSnapshot = {
       providerEnvelopeId: String(docData?.id ?? ''),
@@ -291,32 +360,46 @@ export class DocumensoProvider implements SignatureProvider {
       }));
     }
 
-    // Determine signerRole from a per-recipient event context if present
-    const signerEmail = String(payload.signerEmail ?? payload.recipient_email ?? '');
+    // Determine signerRole from event context
+    const signerEmail = String(
+      (docData?.currentSigner as Record<string, unknown> | undefined)?.email ??
+      payload.signerEmail ??
+      payload.recipient_email ??
+      '',
+    );
     const signerRole =
       envSnapshot.signers.find((s) => s.email === signerEmail)?.role ?? 'carrier';
 
+    // Documenso v2 event names: DOCUMENT_SENT, DOCUMENT_OPENED, DOCUMENT_SIGNED,
+    // DOCUMENT_COMPLETED, DOCUMENT_REJECTED, DOCUMENT_CANCELLED
+    // Also support v1 lowercase forms for backward compat.
     switch (docEvent) {
+      case 'DOCUMENT_SENT':
       case 'document.sent':
         events.push({ kind: 'envelope.sent', envelope: envSnapshot });
         break;
+      case 'DOCUMENT_OPENED':
       case 'document.opened':
         events.push({ kind: 'envelope.viewed', envelope: envSnapshot, signerRole });
         break;
+      case 'DOCUMENT_SIGNED':
       case 'document.signed':
         events.push({ kind: 'envelope.signed', envelope: envSnapshot, signerRole });
         break;
+      case 'DOCUMENT_COMPLETED':
       case 'document.completed':
         events.push({ kind: 'envelope.completed', envelope: envSnapshot });
         break;
+      case 'DOCUMENT_REJECTED':
       case 'document.rejected':
         events.push({
           kind: 'envelope.declined',
           envelope: envSnapshot,
           signerRole,
-          reason: String(payload.reason ?? ''),
+          reason: String(docData?.reason ?? payload.reason ?? ''),
         });
         break;
+      case 'DOCUMENT_CANCELLED':
       case 'document.expired':
         events.push({ kind: 'envelope.expired', envelope: envSnapshot });
         break;

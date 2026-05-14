@@ -1,28 +1,17 @@
 import { notFound } from "next/navigation";
-import { Pool } from "pg";
 import MessageList from "@/components/deal-room/MessageList";
 import ComposeForm from "@/components/deal-room/ComposeForm";
 import { getDealRoomMessages } from "@/lib/deal-room/actions";
 import { getSubmission } from "@/lib/quote-submissions/queries";
 import DealStageCard from "@/components/partner/DealStageCard";
-
-function getPool(): Pool {
-  const connString = process.env.LTH_DB_POOLED_URL;
-  if (!connString) throw new Error("LTH_DB_POOLED_URL not set");
-  return new Pool({ connectionString: connString, max: 2 });
-}
-
-let _pool: Pool | null = null;
-function pool(): Pool {
-  if (!_pool) _pool = getPool();
-  return _pool;
-}
+import DocumentsPanelPartner from "@/components/partner/DocumentsPanel";
+import { getDocumentsForFactor, getPartnerConfig } from "@/lib/factor-documents/queries";
 
 type Props = {
   params: Promise<{ slug: string; dot: string }>;
 };
 
-// Minimal carrier name registry (same convention as factor display names)
+// Minimal carrier name registry
 const CARRIER_NAMES: Record<string, string> = {
   "1234567": "Ridgeline Freight LLC",
 };
@@ -41,23 +30,35 @@ export default async function PartnerDealRoomPage({ params }: Props) {
   if (!slug || !dot) notFound();
 
   // Load FoR + NOA envelope state
-  const { rows: forRows } = await pool().query<{
-    id: string;
-    status: string;
-    assigned_at: Date;
-    noa_state: string | null;
-  }>(
-    `SELECT f.id, f.status, f.assigned_at, e.state AS noa_state
-     FROM factor_of_record f
-     LEFT JOIN noa_envelopes e ON e.id = f.noa_envelope_id
-     WHERE f.factor_slug = $1 AND f.carrier_dot = $2
-     ORDER BY f.assigned_at DESC
-     LIMIT 1`,
-    [slug, dot],
-  ).catch(() => ({ rows: [] as { id: string; status: string; assigned_at: Date; noa_state: string | null }[] }));
+  const { Pool } = await import("pg");
+  const connString = process.env.LTH_DB_POOLED_URL;
+  let forRow: { id: string; status: string; assigned_at: Date; noa_state: string | null } | null = null;
+  let noaStatus: string | null = null;
 
-  const forRow = forRows[0];
-  const noaStatus = forRow?.noa_state ?? null;
+  if (connString) {
+    try {
+      const db = new Pool({ connectionString: connString, max: 2 });
+      const { rows } = await db.query<{
+        id: string;
+        status: string;
+        assigned_at: Date;
+        noa_state: string | null;
+      }>(
+        `SELECT f.id, f.status, f.assigned_at, e.state AS noa_state
+         FROM factor_of_record f
+         LEFT JOIN noa_envelopes e ON e.id = f.noa_envelope_id
+         WHERE f.factor_slug = $1 AND f.carrier_dot = $2
+         ORDER BY f.assigned_at DESC
+         LIMIT 1`,
+        [slug, dot],
+      );
+      forRow = rows[0] ?? null;
+      noaStatus = forRow?.noa_state ?? null;
+      await db.end();
+    } catch {
+      // DB not available — graceful fallback
+    }
+  }
 
   // Load quote submission
   const submission = await getSubmission(dot, slug).catch(() => null);
@@ -67,7 +68,18 @@ export default async function PartnerDealRoomPage({ params }: Props) {
     { carrierDot: dot, factorSlug: slug },
   ).catch(() => []);
 
+  // Load factor documents + partner config
+  const [documents, partnerConfig] = await Promise.all([
+    getDocumentsForFactor(slug, dot).catch(() => []),
+    getPartnerConfig(slug).catch(() => null),
+  ]);
+
   const carrierName = getCarrierName(dot);
+
+  // Derive carrier email from submission or a placeholder
+  const carrierEmail =
+    (submission as unknown as { carrierEmail?: string } | null)?.carrierEmail ??
+    `carrier-${dot}@example.com`;
 
   return (
     <div className="flex-1 bg-background">
@@ -117,6 +129,15 @@ export default async function PartnerDealRoomPage({ params }: Props) {
             </p>
           </div>
         </div>
+
+        {/* Documents panel */}
+        <DocumentsPanelPartner
+          factorSlug={slug}
+          carrierDot={dot}
+          carrierEmail={carrierEmail}
+          documents={documents}
+          partnerConfig={partnerConfig}
+        />
 
         {/* Message thread */}
         <div className="border border-line bg-white p-6">
