@@ -24,6 +24,7 @@ export function pushInboxMessage(
   carrierDot: string,
   factorName: string,
   quoteId: string,
+  factorSlug: string,
 ): void {
   const id = `msg-submit-${quoteId}-${Date.now()}`;
   messages.unshift({
@@ -35,7 +36,7 @@ export function pushInboxMessage(
       `You submitted your interest to ${factorName} on ${new Date().toLocaleString("en-US", { month: "long", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })}.`,
       `Your USDOT profile, MC number, address, fleet size, authority history, insurance summary, and CSA BASIC scores were shared.`,
       `What happens next:\n• ${factorName} will review your submission and reach out within 1–2 business days\n• If approved, they will send you an NOA and onboarding documents to sign in your deal room\n• NOA signing, onboarding, and disbursements all happen on this platform — you'll track everything in your deal room`,
-      `Track your submission status on the Financing page.`,
+      `Track your submission status in your deal room.`,
     ].join("\n\n"),
     fromName: "Financing",
     fromEmail: "financing@licensedtohaul.com",
@@ -44,8 +45,8 @@ export function pushInboxMessage(
     read: false,
     important: false,
     primaryAction: {
-      label: "View financing quotes",
-      href: `/dashboard/${carrierDot}/financing`,
+      label: "Open deal room",
+      href: `/dashboard/${carrierDot}/financing/${factorSlug}`,
     },
   });
   notify();

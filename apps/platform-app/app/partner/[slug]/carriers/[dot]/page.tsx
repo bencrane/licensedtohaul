@@ -3,6 +3,8 @@ import { Pool } from "pg";
 import MessageList from "@/components/deal-room/MessageList";
 import ComposeForm from "@/components/deal-room/ComposeForm";
 import { getDealRoomMessages } from "@/lib/deal-room/actions";
+import { getSubmission } from "@/lib/quote-submissions/queries";
+import DealStageCard from "@/components/partner/DealStageCard";
 
 function getPool(): Pool {
   const connString = process.env.LTH_DB_POOLED_URL;
@@ -57,6 +59,9 @@ export default async function PartnerDealRoomPage({ params }: Props) {
   const forRow = forRows[0];
   const noaStatus = forRow?.noa_state ?? null;
 
+  // Load quote submission
+  const submission = await getSubmission(dot, slug).catch(() => null);
+
   // Load messages
   const messages = await getDealRoomMessages(
     { carrierDot: dot, factorSlug: slug },
@@ -90,6 +95,11 @@ export default async function PartnerDealRoomPage({ params }: Props) {
       </div>
 
       <div className="mx-auto max-w-[900px] space-y-6 px-6 py-8">
+        {/* Deal stage card */}
+        {submission && (
+          <DealStageCard submission={submission} />
+        )}
+
         {/* Status cards */}
         <div className="grid grid-cols-2 gap-4">
           <div className="border border-line bg-white p-4">

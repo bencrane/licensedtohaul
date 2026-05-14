@@ -1,7 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { subscribeToStore, getSnapshot } from "@/lib/quote-state-store";
+import { subscribeToStore, getSnapshot } from "@/lib/quote-submissions/client";
 
 export default function DataPartnerLog() {
   const submissions = useSyncExternalStore(subscribeToStore, getSnapshot);
@@ -32,7 +32,7 @@ export default function DataPartnerLog() {
                 <div className="flex items-center gap-2 flex-wrap">
                   <p className="text-sm font-semibold text-stone-900">{s.factorName}</p>
                   <span className="inline-flex items-center border border-sky-200 bg-sky-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-sky-800">
-                    {s.currentState}
+                    {s.stage}
                   </span>
                 </div>
                 <p className="text-xs text-stone-500">
