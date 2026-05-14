@@ -12,6 +12,7 @@ import PageHeader from "@/components/dashboard/PageHeader";
 import { getMockDashboard } from "@/lib/mock-dashboard";
 import { getMockOpportunities } from "@/lib/mock-opportunities";
 import type { LaneOpportunity, BrokerCreditEntry } from "@/lib/mock-opportunities";
+import { MockSection } from "@/components/MockSection";
 
 type Props = {
   params: Promise<{ dot: string }>;
@@ -66,6 +67,7 @@ export default async function FreightPage({ params }: Props) {
         }
       />
 
+      <MockSection tooltip="Load-board integration not yet wired">
       <section className="flex-1 bg-background">
         <div className="mx-auto max-w-[1400px] space-y-10 px-6 py-8">
           {/* Lanes */}
@@ -127,6 +129,7 @@ export default async function FreightPage({ params }: Props) {
           </div>
         </div>
       </section>
+      </MockSection>
     </>
   );
 }

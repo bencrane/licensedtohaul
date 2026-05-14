@@ -10,7 +10,8 @@ import {
 import PageHeader from "@/components/dashboard/PageHeader";
 import NotificationPreferenceRow from "@/components/dashboard/NotificationPreferenceRow";
 import DataPartnerLog from "@/components/dashboard/DataPartnerLog";
-import { getMockDashboard } from "@/lib/mock-dashboard";
+import { getDashboard } from "@/lib/dashboard-fetch";
+import { MockSection } from "@/components/MockSection";
 
 type Props = {
   params: Promise<{ dot: string }>;
@@ -26,7 +27,7 @@ export default async function SettingsPage({ params }: Props) {
   const cleanDot = dot.replace(/\D/g, "");
   if (!cleanDot) notFound();
 
-  const data = getMockDashboard(cleanDot);
+  const data = await getDashboard(cleanDot);
   const { carrier, notificationPreferences } = data;
 
   return (
@@ -73,11 +74,13 @@ export default async function SettingsPage({ params }: Props) {
               title="Notifications"
               description="Cadence per category. Default is to email when something matters and stay quiet otherwise."
             >
-              <div className="border border-line bg-surface px-6 py-2">
-                {notificationPreferences.map((p) => (
-                  <NotificationPreferenceRow key={p.category} preference={p} />
-                ))}
-              </div>
+              <MockSection tooltip="Notification preferences not yet persisted">
+                <div className="border border-line bg-surface px-6 py-2">
+                  {notificationPreferences.map((p) => (
+                    <NotificationPreferenceRow key={p.category} preference={p} />
+                  ))}
+                </div>
+              </MockSection>
               <p className="mt-4 text-xs text-stone-500">
                 Inbox archive lives at{" "}
                 <a

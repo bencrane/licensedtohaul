@@ -7,6 +7,7 @@ import EventFeed from "@/components/dashboard/EventFeed";
 import NextDeadlines from "@/components/dashboard/NextDeadlines";
 import ActionShortcuts from "@/components/dashboard/ActionShortcuts";
 import { getDashboard } from "@/lib/dashboard-fetch";
+import { MockSection } from "@/components/MockSection";
 
 type Props = {
   params: Promise<{ dot: string }>;
@@ -41,10 +42,12 @@ export default async function DashboardPage({ params }: Props) {
 
       <section className="flex-1 bg-background">
         <div className="mx-auto max-w-[1400px] px-6 py-8 space-y-12">
-          <NextDeadlines
-            deadlines={data.deadlines}
-            href={`/dashboard/${cleanDot}/compliance`}
-          />
+          <MockSection tooltip="Compliance deadlines not yet wired to real filing calendar">
+            <NextDeadlines
+              deadlines={data.deadlines}
+              href={`/dashboard/${cleanDot}/compliance`}
+            />
+          </MockSection>
 
           <div>
             <div className="mb-4 flex items-end justify-between">
@@ -59,7 +62,9 @@ export default async function DashboardPage({ params }: Props) {
                 <ArrowUpRight className="h-3.5 w-3.5 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
               </Link>
             </div>
-            <EventFeed events={recentFeed} hideHeader />
+            <MockSection tooltip="Feed events not yet wired to event emitter">
+              <EventFeed events={recentFeed} hideHeader />
+            </MockSection>
           </div>
         </div>
       </section>

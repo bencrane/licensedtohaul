@@ -5,9 +5,11 @@ import PageHeader from "@/components/dashboard/PageHeader";
 import FinancingClientSection from "@/components/dashboard/FinancingClientSection";
 import { getMockOpportunities } from "@/lib/mock-opportunities";
 import { getActiveFactorOfRecord } from "@/lib/factor-of-record/queries";
+<<<<<<< HEAD
 import { getOpenSubmissionsForCarrier } from "@/lib/quote-submissions/queries";
 import { getFactorDisplayName } from "@/lib/factor-of-record/types";
 import type { QuoteSubmission } from "@/lib/quote-submissions/types";
+import { MockSection } from "@/components/MockSection";
 
 type Props = {
   params: Promise<{ dot: string }>;
@@ -114,11 +116,13 @@ export default async function FinancingPage({ params }: Props) {
             </div>
           )}
 
-          <FinancingClientSection
-            quotes={quotes}
-            dot={cleanDot}
-            submissionMap={submissionMap}
-          />
+          <MockSection tooltip="Factor partner quotes not yet wired to real data">
+            <FinancingClientSection
+              quotes={quotes}
+              dot={cleanDot}
+              submissionMap={submissionMap}
+            />
+          </MockSection>
         </div>
       </section>
     </>

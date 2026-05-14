@@ -23,13 +23,24 @@ import { getMockDashboard, type DashboardData, type HealthStatus } from "@/lib/m
 // GET /api/v1/fmcsa/carriers/{dot_number}. See
 // apps/data-engine-x/app/services/fmcsa_mv_detail.py::get_carrier_detail.
 type SubstrateEnvelope = {
-  carrier: Record<string, unknown>;
+  carrier: Record<string, unknown> & {
+    hazmat_flag?: boolean;
+    operating_class?: string;
+    operating_states?: string[];
+  };
   authorities: Array<Record<string, unknown>>;
   insurance_active: Array<Record<string, unknown>>;
   insurance_history: Array<Record<string, unknown>>;
   safety_basics: Record<string, unknown> | null;
   inspections_recent: Array<Record<string, unknown>>;
   crashes_recent: Array<Record<string, unknown>>;
+  boc3?: {
+    process_agent_name?: string;
+    process_agent_street?: string;
+    process_agent_city?: string;
+    process_agent_state?: string;
+    process_agent_zip?: string;
+  } | null;
 };
 
 function s(v: unknown): string {
@@ -93,6 +104,19 @@ function daysUntil(raw: string): number {
   return Math.floor((then.getTime() - Date.now()) / 86_400_000);
 }
 
+function mapOperatingClass(code: string | undefined | null): string {
+  if (!code) return "";
+  const map: Record<string, string> = {
+    A: "Interstate / For-Hire",
+    B: "Intrastate / Hazmat",
+    C: "Intrastate / Non-Hazmat",
+    interstate: "Interstate / For-Hire",
+    intrastate_hazmat: "Intrastate / Hazmat",
+    intrastate_non_haz: "Intrastate / Non-Hazmat",
+  };
+  return map[code] ?? "";
+}
+
 function mergeEnvelope(envelope: SubstrateEnvelope, mockTemplate: DashboardData): DashboardData {
   const c = envelope.carrier;
   const merged: DashboardData = { ...mockTemplate };
@@ -151,7 +175,7 @@ function mergeEnvelope(envelope: SubstrateEnvelope, mockTemplate: DashboardData)
     powerUnits: n(c.power_units) || mockTemplate.carrier.powerUnits,
     drivers: n(c.driver_total) || mockTemplate.carrier.drivers,
     domicileState: s(c.physical_state) || mockTemplate.carrier.domicileState,
-    hazmatEndorsed: mockTemplate.carrier.hazmatEndorsed,
+    hazmatEndorsed: c.hazmat_flag !== undefined && c.hazmat_flag !== null ? Boolean(c.hazmat_flag) : mockTemplate.carrier.hazmatEndorsed,
     refreshedAt: "today",
     legalAddress: {
       street: s(c.physical_street) || mockTemplate.carrier.legalAddress.street,
@@ -161,7 +185,10 @@ function mergeEnvelope(envelope: SubstrateEnvelope, mockTemplate: DashboardData)
     },
     phone: s(c.phone) || mockTemplate.carrier.phone,
     emailOnFile: s(c.email_address) || mockTemplate.carrier.emailOnFile,
-    carrierOperation: mockTemplate.carrier.carrierOperation,
+    carrierOperation: mapOperatingClass(s(c.operating_class)) || mockTemplate.carrier.carrierOperation,
+    operatingStates: Array.isArray(c.operating_states) && c.operating_states.length > 0
+      ? (c.operating_states as string[])
+      : mockTemplate.carrier.operatingStates,
   };
 
   const mcs150Raw = s(c.mcs150_date);
@@ -272,6 +299,27 @@ function mergeEnvelope(envelope: SubstrateEnvelope, mockTemplate: DashboardData)
         driverViolations: n(ins.driver_violation_total),
         ooss: n(ins.oos_total) > 0,
       })),
+    };
+  }
+
+  // BOC-3: real process agent + address from DEX when present; filedDate stays mock (D2).
+  if (envelope.boc3) {
+    const boc3Parts = [
+      envelope.boc3.process_agent_street,
+      envelope.boc3.process_agent_city,
+      envelope.boc3.process_agent_state,
+      envelope.boc3.process_agent_zip,
+    ].filter(Boolean).join(", ");
+    merged.compliance = {
+      ...merged.compliance,
+      boc3: {
+        ...mockTemplate.compliance.boc3,
+        status: "filed",
+        agent: s(envelope.boc3.process_agent_name) || mockTemplate.compliance.boc3.agent,
+        agentAddress: boc3Parts || mockTemplate.compliance.boc3.agentAddress,
+        // filedDate intentionally kept from mock — no filed_date in boc3_awh substrate (D2)
+        filedDate: mockTemplate.compliance.boc3.filedDate,
+      },
     };
   }
 

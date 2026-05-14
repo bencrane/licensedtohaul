@@ -4,6 +4,7 @@ import type {
   ComplianceSnapshot,
   HealthStatus,
 } from "@/lib/mock-dashboard";
+import { MockText } from "@/components/MockText";
 
 const BASIC_BAR_TONES: Record<HealthStatus, string> = {
   good: "bg-emerald-500",
@@ -37,7 +38,7 @@ function Row({
 }: {
   label: string;
   value: React.ReactNode;
-  detail?: string;
+  detail?: React.ReactNode;
 }) {
   return (
     <div className="flex items-baseline justify-between gap-3 border-b border-line py-2 last:border-b-0">
@@ -106,12 +107,28 @@ export function FleetCard({ fleet }: { fleet: FleetSnapshot }) {
       <Row
         label="Power units"
         value={fleet.powerUnitsNow}
-        detail={`${sign(puDelta)} vs. 90 days ago (${fleet.powerUnits90dAgo})`}
+        detail={
+          <>
+            {sign(puDelta)} vs. 90 days ago (
+            <MockText tooltip="Snapshot history not yet 90d deep">
+              {fleet.powerUnits90dAgo}
+            </MockText>
+            )
+          </>
+        }
       />
       <Row
         label="Drivers"
         value={fleet.driversNow}
-        detail={`${sign(drDelta)} vs. 90 days ago (${fleet.drivers90dAgo})`}
+        detail={
+          <>
+            {sign(drDelta)} vs. 90 days ago (
+            <MockText tooltip="Snapshot history not yet 90d deep">
+              {fleet.drivers90dAgo}
+            </MockText>
+            )
+          </>
+        }
       />
       <div className="mt-3 border-t border-line pt-3">
         <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-500">

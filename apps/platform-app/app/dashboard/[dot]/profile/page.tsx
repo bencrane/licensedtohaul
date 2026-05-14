@@ -11,7 +11,8 @@ import {
   Users,
 } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
-import { getMockDashboard } from "@/lib/mock-dashboard";
+import { getDashboard } from "@/lib/dashboard-fetch";
+import { MockText } from "@/components/MockText";
 
 type Props = {
   params: Promise<{ dot: string }>;
@@ -30,8 +31,9 @@ export default async function ProfilePage({ params }: Props) {
   const cleanDot = dot.replace(/\D/g, "");
   if (!cleanDot) notFound();
 
-  const data = getMockDashboard(cleanDot);
+  const data = await getDashboard(cleanDot);
   const { carrier, insurance, compliance } = data;
+
 
   return (
     <>
@@ -125,7 +127,14 @@ export default async function ProfilePage({ params }: Props) {
               label="Operating territory"
               value={`${carrier.operatingStates.length} states · ${carrier.operatingStates.join(", ")}`}
             />
-            <Row label="Cargo carried" value={carrier.cargoCarried.join(" · ")} />
+            <Row
+              label="Cargo carried"
+              value={
+                <MockText tooltip="Cargo categories not yet plumbed from substrate">
+                  {carrier.cargoCarried.join(" · ")}
+                </MockText>
+              }
+            />
             <Row
               label="Hazmat endorsement"
               value={carrier.hazmatEndorsed ? "Endorsed" : "Not endorsed"}
@@ -201,7 +210,14 @@ export default async function ProfilePage({ params }: Props) {
             />
             <Row label="Process agent" value={compliance.boc3.agent ?? "—"} />
             <Row label="Address" value={compliance.boc3.agentAddress ?? "—"} />
-            <Row label="Filed date" value={compliance.boc3.filedDate ?? "—"} />
+            <Row
+              label="Filed date"
+              value={
+                <MockText tooltip="BOC-3 filed date not yet plumbed from substrate">
+                  {compliance.boc3.filedDate ?? "—"}
+                </MockText>
+              }
+            />
           </Card>
         </div>
       </section>
