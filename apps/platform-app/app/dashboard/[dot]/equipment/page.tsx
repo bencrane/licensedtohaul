@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
-import { Cog, Plus, RefreshCw, AlertCircle } from "lucide-react";
+import { Cog, RefreshCw, AlertCircle } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
+import RequestEquipmentOffersButton from "@/components/dashboard/RequestEquipmentOffersButton";
 import { getMockOpportunities } from "@/lib/mock-opportunities";
 import type { EquipmentOffer } from "@/lib/mock-opportunities";
 
@@ -44,12 +45,7 @@ export default async function EquipmentPage({ params }: Props) {
             </span>
           </>
         }
-        actions={
-          <button className="inline-flex items-center gap-2 bg-orange-600 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-orange-700">
-            <Plus className="h-4 w-4" />
-            Request offers for new equipment
-          </button>
-        }
+        actions={<RequestEquipmentOffersButton />}
       />
 
       <section className="flex-1 bg-background">
