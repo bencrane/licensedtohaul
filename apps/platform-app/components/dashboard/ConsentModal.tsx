@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { X, ShieldCheck, AlertTriangle } from "lucide-react";
 
 // Fields shared with the factor partner on quote submission.
-// Must match FIELDS_SHARED in lib/quote-state-store.ts exactly.
+// Must match FIELDS_SHARED in lib/quote-submissions/constants.ts exactly.
 const MODAL_FIELDS = [
   "USDOT",
   "MC number",

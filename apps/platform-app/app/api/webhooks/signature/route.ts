@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
 import { Pool } from 'pg';
 import { getSignatureProvider, resetSignatureProvider } from '@/lib/signature/index';
-import { DropboxSignProvider } from '@/lib/signature/dropbox-sign';
+import { DocumensoProvider } from '@/lib/signature/documenso';
 import { getFactorDisplayName } from '@/lib/factor-of-record/types';
 import { recordForTransition, writeAuditLog } from '@/lib/factor-of-record/queries';
+import { transitionSubmissionStageByDotSlug } from '@/lib/quote-submissions/actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,8 +21,6 @@ function pool(): Pool {
 }
 
 export async function POST(req: Request): Promise<Response> {
-    const db = pool();
-
   // Dispatch on ?provider= query param or X-Signature-Provider header.
   // Default to the configured provider (v1 compatible).
   const url = new URL(req.url);
@@ -38,16 +37,16 @@ export async function POST(req: Request): Promise<Response> {
     });
 
     let provider;
-    if (providerParam === 'dropbox-sign') {
-      // Use a real DropboxSignProvider for HMAC check regardless of env singleton
-      const apiKey = process.env.DROPBOX_SIGN_API_KEY;
-      if (!apiKey) {
+    if (providerParam === 'documenso') {
+      // Use a real DocumensoProvider for HMAC check regardless of env singleton
+      const secret = process.env.DOCUMENSO_WEBHOOK_SECRET;
+      if (!secret) {
         return NextResponse.json(
-          { error: 'missing DROPBOX_SIGN_API_KEY in Doppler' },
+          { error: 'missing DOCUMENSO_WEBHOOK_SECRET in Doppler' },
           { status: 503 },
         );
       }
-      provider = new DropboxSignProvider();
+      provider = new DocumensoProvider();
     } else {
       provider = getSignatureProvider();
     }
@@ -58,14 +57,19 @@ export async function POST(req: Request): Promise<Response> {
       return NextResponse.json({ error: 'webhook verification failed' }, { status: 401 });
     }
 
+    // Only initialize the DB pool if there are events that require it
+    const hasCompletedEvents = events.some((e) => e.kind === 'envelope.completed');
+    const db = hasCompletedEvents ? pool() : null;
+
     for (const event of events) {
       if (event.kind === 'envelope.completed') {
+        if (!db) continue;
         const externalId = event.envelope.externalId;
         const completedAt = event.envelope.completedAt ?? new Date();
         const signerIp = event.envelope.signers[0]?.ip ?? null;
 
-        // For Dropbox Sign webhooks, externalId comes from metadata in the provider —
-        // if empty we skip (provider couldn't extract it from the webhook payload alone)
+        // For Documenso webhooks, externalId comes from the payload externalId field.
+        // If empty we skip (provider couldn't extract it from the webhook payload alone)
         if (!externalId) continue;
 
         // Look up the envelope row
@@ -148,6 +152,20 @@ export async function POST(req: Request): Promise<Response> {
             JSON.stringify({ envelope_id: externalId, for_id: newForId }),
           ],
         );
+
+        // Advance quote_submissions.stage to 'active' (p7 requirement)
+        // Runs AFTER FoR insert so the row carries a valid factor_of_record_id
+        await transitionSubmissionStageByDotSlug({
+          pool: db,
+          carrierDot: envRow.carrier_dot,
+          factorSlug: envRow.factor_slug,
+          toStage: 'active',
+          actor: 'system',
+          note: 'NOA signed — envelope.completed webhook',
+          factorOfRecordId: newForId,
+        }).catch(() => {
+          // Non-fatal: quote_submissions row may not exist if submission pre-dates this feature
+        });
       }
     }
 

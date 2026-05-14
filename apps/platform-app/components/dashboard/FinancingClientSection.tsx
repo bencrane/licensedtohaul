@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Check,
   Clock,
@@ -18,13 +19,6 @@ import {
 } from "lucide-react";
 import ConsentModal from "@/components/dashboard/ConsentModal";
 import type { FinancingQuote, FinancingQuoteStatus } from "@/lib/mock-opportunities";
-import {
-  subscribeToStore,
-  getSnapshot,
-  submitQuote,
-  getSubmissionForQuote,
-  getActiveSubmissions,
-} from "@/lib/quote-state-store";
 import { pushInboxMessage } from "@/lib/inbox-store";
 
 const TYPE_STYLES = {
@@ -117,29 +111,62 @@ type ModalState = {
 export default function FinancingClientSection({
   quotes,
   dot,
+  submissionMap = {},
 }: {
   quotes: FinancingQuote[];
   dot: string;
+  submissionMap?: Record<string, string>;
 }) {
+  const router = useRouter();
   const [modal, setModal] = useState<ModalState>({ open: false, quote: null });
-  // Subscribe to store so component re-renders when a quote is submitted
-  useSyncExternalStore(subscribeToStore, getSnapshot);
+  const [submitting, setSubmitting] = useState(false);
 
   const factoringQuotes = quotes.filter((q) => q.type === "factoring");
   const otherQuotes = quotes.filter((q) => q.type !== "factoring");
 
-  const activeSubmissions = getActiveSubmissions();
+  // Check if any quote (other than the current modal's quote) is already submitted
   const existingPartner =
-    modal.quote && activeSubmissions.find((s) => s.quoteId !== modal.quote!.id)?.factorName;
+    modal.quote
+      ? (() => {
+          const otherSlug = Object.keys(submissionMap).find(
+            (slug) => slug !== modal.quote!.factorSlug,
+          );
+          return otherSlug ? otherSlug : null;
+        })()
+      : null;
 
-  function handleConfirm(quote: FinancingQuote) {
-    submitQuote({
-      quoteId: quote.id,
-      factorSlug: quote.factorSlug,
-      factorName: quote.factorName,
-      carrierDot: dot,
-    });
-    pushInboxMessage(dot, quote.factorName, quote.id);
+  async function handleConfirm(quote: FinancingQuote) {
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/financing/submit-quote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          dot,
+          factorSlug: quote.factorSlug,
+          quoteId: quote.id,
+          rate: quote.rate,
+          recourseLabel: quote.recourseLabel,
+          fundingSpeed: quote.fundingSpeed,
+          monthlyMinimum: quote.monthlyMinimum,
+          notes: quote.notes,
+          factorName: quote.factorName,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json() as { dealRoomUrl: string };
+        router.push(data.dealRoomUrl);
+      } else {
+        // Fallback: push inbox locally and stay on page
+        pushInboxMessage(dot, quote.factorName, quote.id, quote.factorSlug);
+      }
+    } catch {
+      // Network error fallback
+      pushInboxMessage(dot, quote.factorName, quote.id, quote.factorSlug);
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -159,6 +186,8 @@ export default function FinancingClientSection({
             <FinancingCard
               key={q.id}
               quote={q}
+              dot={dot}
+              submissionStage={submissionMap[q.factorSlug]}
               onTakeQuote={() => setModal({ open: true, quote: q })}
             />
           ))}
@@ -181,6 +210,8 @@ export default function FinancingClientSection({
               <FinancingCard
                 key={q.id}
                 quote={q}
+                dot={dot}
+                submissionStage={submissionMap[q.factorSlug]}
                 onTakeQuote={() => setModal({ open: true, quote: q })}
               />
             ))}
@@ -199,29 +230,41 @@ export default function FinancingClientSection({
           existingSubmissionPartner={existingPartner || undefined}
         />
       )}
+
+      {submitting && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
+          <div className="border border-line bg-white px-6 py-4 text-sm text-stone-700">
+            Submitting…
+          </div>
+        </div>
+      )}
     </>
   );
 }
 
 function FinancingCard({
   quote,
+  dot,
+  submissionStage,
   onTakeQuote,
 }: {
   quote: FinancingQuote;
+  dot: string;
+  submissionStage?: string;
   onTakeQuote: () => void;
 }) {
-  // Merge store state with seed state
-  const storeEntries = useSyncExternalStore(subscribeToStore, getSnapshot);
-  const submission = storeEntries.find((s) => s.quoteId === quote.id);
-  const effectiveStatus: FinancingQuoteStatus = submission
-    ? submission.currentState
+  const effectiveStatus: FinancingQuoteStatus = submissionStage
+    ? (submissionStage as FinancingQuoteStatus)
     : quote.status;
 
   const t = TYPE_STYLES[quote.type];
   const s = STATUS_CONFIG[effectiveStatus] ?? STATUS_CONFIG["pending"];
 
   const canTakeQuote =
-    effectiveStatus === "available" || effectiveStatus === "received";
+    !submissionStage &&
+    (effectiveStatus === "available" || effectiveStatus === "received");
+
+  const hasSubmission = Boolean(submissionStage);
 
   return (
     <li className={`bg-surface p-5 ${effectiveStatus === "pending" ? "opacity-80" : ""}`}>
@@ -262,6 +305,15 @@ function FinancingCard({
         <p className="text-xs text-stone-600 leading-relaxed">{s.footerCopy}</p>
 
         <div className="flex flex-col gap-2">
+          {hasSubmission && (
+            <a
+              href={`/dashboard/${dot}/financing/${quote.factorSlug}`}
+              className="inline-flex w-full items-center justify-center gap-1.5 border border-orange-400 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-orange-700 transition-colors hover:bg-orange-50"
+            >
+              <ArrowRight className="h-3 w-3" />
+              Open deal room
+            </a>
+          )}
           {canTakeQuote && (
             <button
               type="button"
@@ -271,7 +323,7 @@ function FinancingCard({
               Take this quote
             </button>
           )}
-          {s.primaryAction && (
+          {!hasSubmission && s.primaryAction && (
             <button
               type="button"
               className="inline-flex w-full items-center justify-center gap-1.5 border border-line bg-white px-3 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-stone-800 transition-colors hover:border-orange-400 hover:text-orange-700"
@@ -280,7 +332,7 @@ function FinancingCard({
               {s.primaryAction.label}
             </button>
           )}
-          {s.secondaryAction && (
+          {!hasSubmission && s.secondaryAction && (
             <button
               type="button"
               className="inline-flex w-full items-center justify-center gap-1.5 border border-stone-200 bg-white px-3 py-2 text-xs font-medium text-stone-500 transition-colors hover:border-stone-400 hover:text-stone-700"
