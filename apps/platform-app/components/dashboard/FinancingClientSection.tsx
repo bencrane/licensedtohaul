@@ -85,7 +85,7 @@ const STATUS_CONFIG: Record<FinancingQuoteStatus, StatusConfig> = {
     chip: "border-emerald-200 bg-emerald-50 text-emerald-800",
     icon: <ThumbsUp className="h-3 w-3" />,
     label: "Approved",
-    footerCopy: "Approved! The factor will send you an agreement to complete onboarding off-platform.",
+    footerCopy: "Approved! The factor will send you an NOA to sign in your deal room.",
     primaryAction: { label: "View next steps", icon: <ArrowRight className="h-3 w-3" /> },
   },
   declined: {
@@ -98,7 +98,7 @@ const STATUS_CONFIG: Record<FinancingQuoteStatus, StatusConfig> = {
     chip: "border-amber-200 bg-amber-50 text-amber-800",
     icon: <Layers className="h-3 w-3" />,
     label: "Onboarding",
-    footerCopy: "Onboarding is in progress off-platform. Sign documents and provide banking details directly with the factor.",
+    footerCopy: "Onboarding is in progress in your deal room. Sign documents and complete banking setup right there.",
     primaryAction: { label: "View next steps", icon: <ArrowRight className="h-3 w-3" /> },
   },
   active: {

@@ -30,7 +30,7 @@ export default async function FinancingPage({ params }: Props) {
       <PageHeader
         eyebrow="Financing"
         title="Compare factoring partners."
-        description="Quotes from factoring partners that fund carriers like yours. Rate, funding speed, and recourse terms are shown upfront. Submit to the partner you like — they'll reach out to finalize NOA and onboarding off-platform."
+        description="Quotes from factoring partners that fund carriers like yours. Rate, funding speed, and recourse terms are shown upfront. Submit to the partner you like — NOA signing, onboarding, and disbursements all happen on-platform in your deal room."
         meta={
           <span className="inline-flex items-center gap-1.5">
             <Wallet className="h-3.5 w-3.5 text-stone-400" />

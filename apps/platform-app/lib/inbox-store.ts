@@ -34,7 +34,7 @@ export function pushInboxMessage(
     body: [
       `You submitted your interest to ${factorName} on ${new Date().toLocaleString("en-US", { month: "long", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })}.`,
       `Your USDOT profile, MC number, address, fleet size, authority history, insurance summary, and CSA BASIC scores were shared.`,
-      `What happens next:\n• ${factorName} will review your submission and reach out within 1–2 business days\n• If approved, they will send you an agreement and onboarding instructions off-platform\n• Licensed to Haul is an orchestration-only platform — agreement signing and invoice funding happen directly with ${factorName}`,
+      `What happens next:\n• ${factorName} will review your submission and reach out within 1–2 business days\n• If approved, they will send you an NOA and onboarding documents to sign in your deal room\n• NOA signing, onboarding, and disbursements all happen on this platform — you'll track everything in your deal room`,
       `Track your submission status on the Financing page.`,
     ].join("\n\n"),
     fromName: "Financing",
