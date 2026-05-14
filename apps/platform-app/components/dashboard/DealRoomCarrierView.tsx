@@ -1,30 +1,28 @@
 "use client";
 
-import { Clock, CheckCircle2, FileSignature, Layers, Activity, Banknote } from "lucide-react";
+import { Clock, CheckCircle2, Layers, Activity, Banknote } from "lucide-react";
 import StagePipeline from "@/components/dashboard/StagePipeline";
-import NoaSignPanel from "@/components/dashboard/NoaSignPanel";
+import DocumentsPanel from "@/components/dashboard/DocumentsPanel";
 import DisbursementTimeline from "@/components/dashboard/DisbursementTimeline";
 import MessageList from "@/components/deal-room/MessageList";
 import ComposeForm from "@/components/deal-room/ComposeForm";
 import type { QuoteSubmission } from "@/lib/quote-submissions/types";
 import type { DisbursementRow } from "@/lib/disbursements/types";
 import type { DealRoomMessage } from "@/lib/deal-room/types";
-import type { NoaEnvelopeRow } from "@/lib/factor-of-record/types";
+import type { FactorDocumentRow } from "@/lib/factor-documents/types";
 
 type Props = {
   submission: QuoteSubmission;
   factorName: string;
-  noaEnvelope?: NoaEnvelopeRow | null;
+  documents?: FactorDocumentRow[];
   disbursements?: DisbursementRow[];
   messages?: DealRoomMessage[];
 };
 
 function ActionPanel({
   submission,
-  noaEnvelope,
 }: {
   submission: QuoteSubmission;
-  noaEnvelope?: NoaEnvelopeRow | null;
 }) {
   const stage = submission.stage;
 
@@ -60,29 +58,16 @@ function ActionPanel({
   }
 
   if (stage === "noa_sent") {
-    // Get sign URL from noa_envelopes row — store persists assembled URL in provider_envelope_id
-    // Documenso stores the assembled sign URL separately via signUrls['carrier']
-    // For now, we look at the envelope row's external_id to reconstruct if needed.
-    // The sign URL is stored on the envelope row via the factor-of-record action.
-    const signUrl = noaEnvelope
-      ? `${process.env.NEXT_PUBLIC_DOCUMENSO_API_URL ?? ""}/sign/${noaEnvelope.provider_envelope_id ?? noaEnvelope.external_id}`
-      : "";
-
     return (
-      <div className="space-y-4">
-        <div className="flex items-start gap-3 border border-sky-200 bg-sky-50 px-5 py-4">
-          <FileSignature className="mt-0.5 h-4 w-4 flex-none text-sky-600" />
-          <div>
-            <p className="text-sm font-medium text-sky-900">Your NOA is ready to sign</p>
-            <p className="mt-0.5 text-xs text-sky-700">
-              Review and sign the Notice of Assignment below. This document authorizes your factor to
-              collect payments on your behalf.
-            </p>
-          </div>
+      <div className="flex items-start gap-3 border border-sky-200 bg-sky-50 px-5 py-4">
+        <Layers className="mt-0.5 h-4 w-4 flex-none text-sky-600" />
+        <div>
+          <p className="text-sm font-medium text-sky-900">Your NOA is ready to sign</p>
+          <p className="mt-0.5 text-xs text-sky-700">
+            Review and sign the Notice of Assignment in the Documents section below. This document
+            authorizes your factor to collect payments on your behalf.
+          </p>
         </div>
-        {noaEnvelope && (
-          <NoaSignPanel signUrl={signUrl} />
-        )}
       </div>
     );
   }
@@ -149,7 +134,7 @@ function ActionPanel({
 export default function DealRoomCarrierView({
   submission,
   factorName,
-  noaEnvelope,
+  documents = [],
   disbursements = [],
   messages = [],
 }: Props) {
@@ -186,8 +171,17 @@ export default function DealRoomCarrierView({
 
       {/* Action panel */}
       <div>
-        <ActionPanel submission={submission} noaEnvelope={noaEnvelope} />
+        <ActionPanel submission={submission} />
       </div>
+
+      {/* Documents panel — always visible if any documents exist */}
+      {documents.length > 0 && (
+        <DocumentsPanel
+          documents={documents}
+          carrierDot={submission.carrierDot}
+          factorSlug={submission.factorSlug}
+        />
+      )}
 
       {/* Disbursement timeline — only when active or has data */}
       {showDisbursements && (

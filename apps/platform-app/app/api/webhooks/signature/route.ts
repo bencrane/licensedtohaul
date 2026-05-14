@@ -1,10 +1,20 @@
 import { NextResponse } from 'next/server';
 import { Pool } from 'pg';
-import { getSignatureProvider, resetSignatureProvider } from '@/lib/signature/index';
+import { getSignatureProvider } from '@/lib/signature/index';
 import { DocumensoProvider } from '@/lib/signature/documenso';
 import { getFactorDisplayName } from '@/lib/factor-of-record/types';
 import { recordForTransition, writeAuditLog } from '@/lib/factor-of-record/queries';
 import { transitionSubmissionStageByDotSlug } from '@/lib/quote-submissions/actions';
+import {
+  getDocumentByDocumensoId,
+} from '@/lib/factor-documents/queries';
+import {
+  markCarrierSigned,
+  markFactorSigned,
+  markCompleted,
+  markRejected,
+  markVoided,
+} from '@/lib/factor-documents/actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -38,7 +48,7 @@ export async function POST(req: Request): Promise<Response> {
 
     let provider;
     if (providerParam === 'documenso') {
-      // Use a real DocumensoProvider for HMAC check regardless of env singleton
+      // Use a real DocumensoProvider for secret check regardless of env singleton
       const secret = process.env.DOCUMENSO_WEBHOOK_SECRET;
       if (!secret) {
         return NextResponse.json(
@@ -57,11 +67,80 @@ export async function POST(req: Request): Promise<Response> {
       return NextResponse.json({ error: 'webhook verification failed' }, { status: 401 });
     }
 
-    // Only initialize the DB pool if there are events that require it
+    // Determine which events need DB
     const hasCompletedEvents = events.some((e) => e.kind === 'envelope.completed');
-    const db = hasCompletedEvents ? pool() : null;
+    const hasSignedEvents = events.some((e) => e.kind === 'envelope.signed');
+    const hasDeclinedEvents = events.some((e) => e.kind === 'envelope.declined');
+    const hasExpiredEvents = events.some((e) => e.kind === 'envelope.expired');
+    const needsDb = hasCompletedEvents || hasSignedEvents || hasDeclinedEvents || hasExpiredEvents;
+    const db = needsDb ? (() => { try { return pool(); } catch { return null; } })() : null;
+
+    // Parse the raw body to extract the Documenso document ID for factor_documents routing
+    let webhookPayload: Record<string, unknown> | null = null;
+    try {
+      webhookPayload = JSON.parse(rawBody.toString('utf-8')) as Record<string, unknown>;
+    } catch {
+      // non-fatal; use events only
+    }
+
+    // Documenso v2 shape: { event, payload: { id, ... } }; v1 shape: { event, data: { id, ... } }
+    const docPayload = webhookPayload
+      ? ((webhookPayload.payload ?? webhookPayload.data) as Record<string, unknown> | undefined)
+      : undefined;
+    const documensoDocId = docPayload?.id ? String(docPayload.id) : null;
 
     for (const event of events) {
+      // -----------------------------------------------------------------------
+      // Factor Documents routing (new v2 path)
+      // -----------------------------------------------------------------------
+      if (documensoDocId && (hasSignedEvents || hasCompletedEvents || hasDeclinedEvents || hasExpiredEvents)) {
+        const factorDoc = await getDocumentByDocumensoId(documensoDocId).catch(() => null);
+
+        if (factorDoc) {
+          if (event.kind === 'envelope.signed') {
+            // Determine which signer signed: carrier or factor
+            // Extract current signer email from webhook payload
+            const currentSignerEmail =
+              String(
+                (docPayload?.currentSigner as Record<string, unknown> | undefined)?.email ??
+                '',
+              ) || null;
+
+            // Compare to stored tokens to determine role
+            // If we can't determine role, fall back to carrier first
+            const isFactorSigner =
+              currentSignerEmail && factorDoc.factor_signing_token &&
+              event.signerRole === 'factor';
+
+            if (isFactorSigner) {
+              await markFactorSigned({ documentId: factorDoc.id }).catch(console.error);
+            } else {
+              await markCarrierSigned({ documentId: factorDoc.id }).catch(console.error);
+            }
+            continue;
+          }
+
+          if (event.kind === 'envelope.completed') {
+            await markCompleted({ documentId: factorDoc.id }).catch(console.error);
+            continue;
+          }
+
+          if (event.kind === 'envelope.declined') {
+            const reason = (event as { reason?: string }).reason ?? '';
+            await markRejected({ documentId: factorDoc.id, reason }).catch(console.error);
+            continue;
+          }
+
+          if (event.kind === 'envelope.expired') {
+            await markVoided({ documentId: factorDoc.id, reason: 'expired' }).catch(console.error);
+            continue;
+          }
+        }
+      }
+
+      // -----------------------------------------------------------------------
+      // Legacy noa_envelopes path (PR #13 backward compat — fires when NO factor_documents row)
+      // -----------------------------------------------------------------------
       if (event.kind === 'envelope.completed') {
         if (!db) continue;
         const externalId = event.envelope.externalId;
@@ -69,7 +148,6 @@ export async function POST(req: Request): Promise<Response> {
         const signerIp = event.envelope.signers[0]?.ip ?? null;
 
         // For Documenso webhooks, externalId comes from the payload externalId field.
-        // If empty we skip (provider couldn't extract it from the webhook payload alone)
         if (!externalId) continue;
 
         // Look up the envelope row
@@ -82,7 +160,7 @@ export async function POST(req: Request): Promise<Response> {
            FROM noa_envelopes
            WHERE external_id = $1`,
           [externalId],
-        );
+        ).catch(() => ({ rows: [] as { id: string; carrier_dot: string; factor_slug: string }[] }));
 
         if (!envRows[0]) continue;
 
@@ -154,7 +232,6 @@ export async function POST(req: Request): Promise<Response> {
         );
 
         // Advance quote_submissions.stage to 'active' (p7 requirement)
-        // Runs AFTER FoR insert so the row carries a valid factor_of_record_id
         await transitionSubmissionStageByDotSlug({
           pool: db,
           carrierDot: envRow.carrier_dot,

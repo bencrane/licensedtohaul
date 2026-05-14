@@ -69,9 +69,36 @@ export interface WebhookVerificationResult {
   events: NormalizedSignatureEvent[];
 }
 
+export interface TemplateSigner {
+  recipientId: number; // Documenso template recipient ID (assigned at template authoring time)
+  role: string; // 'carrier' | 'factor'
+  name: string;
+  email: string;
+}
+
+export interface CreateDocumentFromTemplateInput {
+  templateId: number;
+  externalId?: string;
+  distributeDocument?: boolean;
+  signers: TemplateSigner[];
+  prefillFields?: Array<{ id: string | number; value: string | number | boolean }>;
+}
+
+export interface CreateDocumentFromTemplateResult {
+  documentId: string;
+  recipients: Array<{
+    role: string;
+    email: string;
+    signingToken: string;
+  }>;
+}
+
 export interface SignatureProvider {
   readonly name: 'dropbox-sign' | 'boldsign' | 'documenso' | 'fake';
   createEnvelope(input: CreateEnvelopeInput): Promise<CreateEnvelopeResult>;
+  createDocumentFromTemplate(
+    input: CreateDocumentFromTemplateInput,
+  ): Promise<CreateDocumentFromTemplateResult>;
   getEnvelope(providerEnvelopeId: string): Promise<EnvelopeSnapshot>;
   voidEnvelope(providerEnvelopeId: string, reason: string): Promise<void>;
   getDownloadUrl(

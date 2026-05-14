@@ -7,6 +7,7 @@ import { getDealRoomMessages } from "@/lib/deal-room/actions";
 import { getFactorDisplayName } from "@/lib/factor-of-record/types";
 import type { NoaEnvelopeRow } from "@/lib/factor-of-record/types";
 import type { DisbursementRow } from "@/lib/disbursements/types";
+import { getDocumentsForCarrier } from "@/lib/factor-documents/queries";
 
 function getPool(): Pool {
   const connString = process.env.LTH_DB_POOLED_URL;
@@ -108,6 +109,9 @@ export default async function CarrierDealRoomPage({ params }: Props) {
     { carrierDot: cleanDot, factorSlug },
   ).catch(() => []);
 
+  // Load factor documents for this carrier/factor pair
+  const documents = await getDocumentsForCarrier(cleanDot, factorSlug).catch(() => []);
+
   return (
     <section className="flex-1 bg-background">
       <div className="border-b border-line bg-white px-6 py-6">
@@ -123,7 +127,7 @@ export default async function CarrierDealRoomPage({ params }: Props) {
         <DealRoomCarrierView
           submission={effectiveSubmission}
           factorName={factorName}
-          noaEnvelope={noaEnvelope}
+          documents={documents}
           disbursements={disbursements}
           messages={messages}
         />

@@ -6,6 +6,8 @@ import type {
   EnvelopeStatus,
   NormalizedSignatureEvent,
   WebhookVerificationResult,
+  CreateDocumentFromTemplateInput,
+  CreateDocumentFromTemplateResult,
 } from './types';
 
 interface StoredEnvelope {
@@ -28,6 +30,18 @@ export class FakeSignatureProvider implements SignatureProvider {
   private envelopes = new Map<string, StoredEnvelope>();
   // index: externalId -> providerEnvelopeId
   private externalIndex = new Map<string, string>();
+
+  createDocumentFromTemplate(
+    input: CreateDocumentFromTemplateInput,
+  ): Promise<CreateDocumentFromTemplateResult> {
+    const documentId = `fake-tmpl-doc-${input.templateId}-${input.externalId ?? Date.now()}`;
+    const recipients: CreateDocumentFromTemplateResult['recipients'] = input.signers.map((s) => ({
+      role: s.role,
+      email: s.email,
+      signingToken: `fake-token-${s.role}-${documentId}`,
+    }));
+    return Promise.resolve({ documentId, recipients });
+  }
 
   createEnvelope(input: CreateEnvelopeInput): Promise<CreateEnvelopeResult> {
     const providerEnvelopeId = `fake-env-${input.externalId}`;
