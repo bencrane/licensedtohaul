@@ -3,6 +3,7 @@ import { TrendingUp, TrendingDown, Minus, AlertTriangle, ShieldCheck } from "luc
 import PageHeader from "@/components/dashboard/PageHeader";
 import { getDashboard } from "@/lib/dashboard-fetch";
 import type { HealthStatus, Inspection } from "@/lib/mock-dashboard";
+import { MockText } from "@/components/MockText";
 import { MockSection } from "@/components/MockSection";
 
 type Props = {
@@ -156,17 +157,17 @@ export default async function SafetyPage({ params }: Props) {
                 <h2 className="font-display mb-4 text-2xl text-stone-900">
                   Audit history
                 </h2>
-                <MockSection tooltip="Audit history not yet wired to real data">
-                  <div className="border border-line bg-surface p-6 text-center">
-                    <ShieldCheck className="mx-auto h-8 w-8 text-emerald-600" />
+                <div className="border border-line bg-surface p-6 text-center">
+                  <ShieldCheck className="mx-auto h-8 w-8 text-emerald-600" />
+                  <MockText tooltip="Audit history not yet wired to real data">
                     <p className="mt-3 font-display text-lg text-stone-900">
                       No audits in 24 months.
                     </p>
                     <p className="mt-1 text-sm text-stone-600">
                       Most recent audit: New Entrant Safety Audit, May 2019. Passed.
                     </p>
-                  </div>
-                </MockSection>
+                  </MockText>
+                </div>
               </div>
             </div>
           </div>
