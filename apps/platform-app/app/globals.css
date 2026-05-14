@@ -1,5 +1,43 @@
 @import "tailwindcss";
 
+/* Theme tokens — also emitted to :root below so var(--color-*) works at runtime.
+ * Tailwind 4's @theme generates utility classes but its layer-scoped :root rule
+ * doesn't reliably propagate vars to var() consumers in our setup. The duplicate
+ * unlayered :root block is the workaround. */
+:root {
+  --color-background: #faf6ec;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f3eddc;
+  --color-foreground: #1a1410;
+  --color-foreground-muted: #6b5e4f;
+  --color-foreground-subtle: #9b8d7d;
+  --color-line: #e7dfc9;
+  --color-line-strong: #d6cbb0;
+  --color-orange-50:  #fff7ed;
+  --color-orange-100: #ffedd5;
+  --color-orange-200: #fed7aa;
+  --color-orange-300: #fdba74;
+  --color-orange-400: #fb923c;
+  --color-orange-500: #f97316;
+  --color-orange-600: #ea580c;
+  --color-orange-700: #c2410c;
+  --color-orange-800: #9a3412;
+  --color-stone-50:  #faf6ec;
+  --color-stone-100: #f3eddc;
+  --color-stone-200: #e7dfc9;
+  --color-stone-300: #d6cbb0;
+  --color-stone-400: #b3a78b;
+  --color-stone-500: #8a7e62;
+  --color-stone-600: #6b5e4f;
+  --color-stone-700: #4a3f35;
+  --color-stone-800: #2c241c;
+  --color-stone-900: #1a1410;
+  --color-success: #15803d;
+  --color-warning: #b45309;
+}
+
+html { background-color: var(--color-background); }
+
 @theme {
   /* Surface */
   --color-background: #faf6ec;
