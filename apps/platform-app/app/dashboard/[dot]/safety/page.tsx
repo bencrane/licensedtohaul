@@ -1,8 +1,9 @@
 import { notFound } from "next/navigation";
 import { TrendingUp, TrendingDown, Minus, AlertTriangle, ShieldCheck } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
-import { getMockDashboard } from "@/lib/mock-dashboard";
+import { getDashboard } from "@/lib/dashboard-fetch";
 import type { HealthStatus, Inspection } from "@/lib/mock-dashboard";
+import { MockSection } from "@/components/MockSection";
 
 type Props = {
   params: Promise<{ dot: string }>;
@@ -24,7 +25,7 @@ export default async function SafetyPage({ params }: Props) {
   const cleanDot = dot.replace(/\D/g, "");
   if (!cleanDot) notFound();
 
-  const { safety } = getMockDashboard(cleanDot);
+  const { safety } = await getDashboard(cleanDot);
 
   return (
     <>
@@ -155,15 +156,17 @@ export default async function SafetyPage({ params }: Props) {
                 <h2 className="font-display mb-4 text-2xl text-stone-900">
                   Audit history
                 </h2>
-                <div className="border border-line bg-surface p-6 text-center">
-                  <ShieldCheck className="mx-auto h-8 w-8 text-emerald-600" />
-                  <p className="mt-3 font-display text-lg text-stone-900">
-                    No audits in 24 months.
-                  </p>
-                  <p className="mt-1 text-sm text-stone-600">
-                    Most recent audit: New Entrant Safety Audit, May 2019. Passed.
-                  </p>
-                </div>
+                <MockSection tooltip="Audit history not yet wired to real data">
+                  <div className="border border-line bg-surface p-6 text-center">
+                    <ShieldCheck className="mx-auto h-8 w-8 text-emerald-600" />
+                    <p className="mt-3 font-display text-lg text-stone-900">
+                      No audits in 24 months.
+                    </p>
+                    <p className="mt-1 text-sm text-stone-600">
+                      Most recent audit: New Entrant Safety Audit, May 2019. Passed.
+                    </p>
+                  </div>
+                </MockSection>
               </div>
             </div>
           </div>
