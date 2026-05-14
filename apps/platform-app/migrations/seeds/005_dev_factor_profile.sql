@@ -29,17 +29,17 @@ BEGIN
     RAISE NOTICE 'apex-factoring org exists (org_id: %)', v_apex_id;
   END IF;
 
-  -- 2. Ensure test@licensedtohaul.com is a member of apex-factoring
+  -- 2. Ensure seed-factor-1@licensedtohaul.test is a member of apex-factoring
   SELECT u.id INTO v_partner_lth_user_id
     FROM lth.users u
     JOIN auth.users au ON au.id = u.auth_user_id
-   WHERE au.email = 'test@licensedtohaul.com';
+   WHERE au.email = 'seed-factor-1@licensedtohaul.test';
 
   IF v_partner_lth_user_id IS NOT NULL THEN
     INSERT INTO lth.organization_memberships (user_id, organization_id, role, status)
     VALUES (v_partner_lth_user_id, v_apex_id, 'owner', 'active')
     ON CONFLICT (user_id, organization_id) DO UPDATE SET role='owner', status='active';
-    RAISE NOTICE 'Ensured test@licensedtohaul.com → apex-factoring (owner)';
+    RAISE NOTICE 'Ensured seed-factor-1@licensedtohaul.test → apex-factoring (owner)';
   END IF;
 
   -- 3. Seed rts-financial org (idempotent)

@@ -23,10 +23,10 @@ BEGIN
   SELECT u.id INTO v_user_id
     FROM lth.users u
     JOIN auth.users au ON au.id = u.auth_user_id
-   WHERE au.email = 'test@licensedtohaul.com'
+   WHERE au.email = 'seed-factor-1@licensedtohaul.test'
    LIMIT 1;
   IF v_user_id IS NULL THEN
-    RAISE EXCEPTION 'test user not found — run 001_dev_user.sql first';
+    RAISE EXCEPTION 'seed-factor-1@licensedtohaul.test user not found — run 001_dev_user.sql first';
   END IF;
 
   -- Take 3 transfers in different dispositions so the inbox has variety.
