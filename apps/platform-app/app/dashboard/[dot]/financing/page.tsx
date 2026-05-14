@@ -1,7 +1,9 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { Wallet } from "lucide-react";
+import { Wallet, ArrowRight } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
+import FinancingClientSection from "@/components/dashboard/FinancingClientSection";
+import { getMockOpportunities } from "@/lib/mock-opportunities";
 import { getActiveFactorOfRecord } from "@/lib/factor-of-record/queries";
 
 type Props = {
@@ -18,60 +20,49 @@ export default async function FinancingPage({ params }: Props) {
   const cleanDot = dot.replace(/\D/g, "");
   if (!cleanDot) notFound();
 
+  const opps = getMockOpportunities();
+  const quotes = opps.financing.activeQuotes;
+  const factoringCount = quotes.filter((q) => q.type === "factoring").length;
   const activeFoR = await getActiveFactorOfRecord(cleanDot).catch(() => null);
 
   return (
     <>
       <PageHeader
         eyebrow="Financing"
-        title="Your active factor relationship."
-        description="Invoice factoring with your signed factor. All communications, NOA status, and disbursement history are in your deal room."
+        title="Compare factoring partners."
+        description="Quotes from factoring partners that fund carriers like yours. Rate, funding speed, and recourse terms are shown upfront. Submit to the partner you like — they'll reach out to finalize NOA and onboarding off-platform."
         meta={
           <span className="inline-flex items-center gap-1.5">
             <Wallet className="h-3.5 w-3.5 text-stone-400" />
-            {activeFoR
-              ? `Factor: ${activeFoR.factor_display_name}`
-              : "No factor on file"}
+            {factoringCount} factoring {factoringCount === 1 ? "quote" : "quotes"} ·{" "}
+            {quotes.length - factoringCount} other
           </span>
         }
       />
 
       <section className="flex-1 bg-background">
-        <div className="mx-auto max-w-[1400px] space-y-6 px-6 py-8">
-          {activeFoR ? (
-            <div className="border border-line bg-white p-6">
-              <div className="flex items-start justify-between">
-                <div>
-                  <h2 className="font-display text-xl text-stone-900">
-                    {activeFoR.factor_display_name}
-                  </h2>
-                  <p className="mt-1 text-sm text-stone-500">
-                    Active factor of record since{" "}
-                    {new Date(activeFoR.assigned_at).toLocaleDateString("en-US", {
-                      month: "long",
-                      day: "numeric",
-                      year: "numeric",
-                    })}
-                  </p>
-                </div>
-                <Link
-                  href={`/dashboard/${cleanDot}/financing/${activeFoR.factor_slug}`}
-                  className="inline-flex items-center gap-2 bg-orange-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-orange-700"
-                >
-                  Open deal room
-                </Link>
-              </div>
-            </div>
-          ) : (
-            <div className="border border-line bg-white p-8 text-center">
-              <Wallet className="mx-auto h-8 w-8 text-stone-300 mb-3" />
-              <p className="font-display text-lg text-stone-900">No factor on file.</p>
-              <p className="mt-2 text-sm text-stone-500 max-w-md mx-auto">
-                Invoice factoring works through a signed Notice of Assignment with your chosen factor.
-                Contact your factor to begin the NOA process.
-              </p>
-            </div>
+        <div className="mx-auto max-w-[1400px] space-y-10 px-6 py-8">
+          {activeFoR && (
+            <Link
+              href={`/dashboard/${cleanDot}/financing/${activeFoR.factor_slug}`}
+              className="group flex items-center justify-between border border-line bg-stone-50 px-4 py-3 transition-colors hover:border-orange-300 hover:bg-orange-50"
+            >
+              <span className="inline-flex items-center gap-2 text-sm text-stone-700">
+                <Wallet className="h-4 w-4 text-stone-400" />
+                You have an active factor relationship with{" "}
+                <span className="font-semibold text-stone-900">
+                  {activeFoR.factor_display_name}
+                </span>
+                . Communications and disbursements are in your deal room.
+              </span>
+              <span className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.08em] text-orange-700 group-hover:text-orange-800">
+                Open deal room
+                <ArrowRight className="h-3 w-3" />
+              </span>
+            </Link>
           )}
+
+          <FinancingClientSection quotes={quotes} dot={cleanDot} />
         </div>
       </section>
     </>
