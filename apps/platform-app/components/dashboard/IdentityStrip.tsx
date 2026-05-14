@@ -15,50 +15,41 @@ export default function IdentityStrip({ carrier }: { carrier: CarrierProfile }) 
 
   return (
     <section className="border-b border-line bg-white">
-      <div className="mx-auto max-w-[1400px] px-6 py-6">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-          <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-end lg:gap-8">
-            <div className="min-w-0">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-500">
-                USDOT
-              </p>
-              <div className="mt-1 flex items-center gap-2">
-                <p className="font-display text-4xl leading-none text-stone-900 sm:text-5xl lg:text-6xl">
-                  {carrier.dotNumber}
-                </p>
-                <button
-                  type="button"
-                  className="rounded p-1.5 text-stone-400 transition-colors hover:bg-stone-100 hover:text-stone-700"
-                  aria-label="Copy USDOT number"
-                >
-                  <Copy className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-            <div className="min-w-0 lg:pb-1">
-              <p className="font-display text-balance text-xl text-stone-900">
-                {carrier.legalName}
-              </p>
-              {carrier.dba && (
-                <p className="text-sm text-stone-500">DBA {carrier.dba}</p>
-              )}
-              <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-stone-600">
-                <span className="inline-flex items-center gap-1.5">
-                  <Calendar className="h-3.5 w-3.5 flex-none text-stone-400" />
-                  Authority granted {carrier.authorityGranted}
-                </span>
-                <span className="inline-flex items-center gap-1.5">
-                  <MapPin className="h-3.5 w-3.5 flex-none text-stone-400" />
-                  {carrier.domicileState}
-                </span>
-                <span className="inline-flex items-center gap-1.5 font-mono">
-                  {carrier.authorityTypes.join(" · ")}
-                </span>
-              </div>
+      <div className="mx-auto max-w-[1400px] px-6 py-7">
+        <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0 flex-1">
+            <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-500">
+              USDOT {carrier.dotNumber}
+              <button
+                type="button"
+                className="ml-1.5 rounded p-0.5 text-stone-400 transition-colors hover:bg-stone-100 hover:text-stone-700"
+                aria-label="Copy USDOT number"
+              >
+                <Copy className="inline-block h-3 w-3" />
+              </button>
+            </p>
+            <h1 className="font-display mt-2 text-3xl leading-tight text-stone-900 text-balance sm:text-4xl">
+              {carrier.legalName}
+            </h1>
+            {carrier.dba && (
+              <p className="mt-1 text-sm text-stone-500">DBA {carrier.dba}</p>
+            )}
+            <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-xs text-stone-600">
+              <span className="inline-flex items-center gap-1.5">
+                <Calendar className="h-3.5 w-3.5 flex-none text-stone-400" />
+                Authority granted {carrier.authorityGranted}
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <MapPin className="h-3.5 w-3.5 flex-none text-stone-400" />
+                {carrier.domicileState}
+              </span>
+              <span className="inline-flex items-center gap-1.5 font-mono">
+                {carrier.authorityTypes.join(" · ")}
+              </span>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3 lg:items-end">
+          <div className="flex flex-none flex-col items-start gap-1.5 sm:items-end">
             <span
               className={`inline-flex items-center gap-1.5 border px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.12em] ${status.tone}`}
             >
