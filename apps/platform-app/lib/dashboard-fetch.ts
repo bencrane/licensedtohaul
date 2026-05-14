@@ -17,8 +17,13 @@
  * development against the static fixture continue to work.
  */
 import { createClient } from "@/lib/supabase/server";
-import { env } from "@/lib/env";
 import { getMockDashboard, type DashboardData } from "@/lib/mock-dashboard";
+
+// hq-x integration was removed; carrier dashboard pages now always render from
+// the mock fixture. The fetch path below is kept dormant in case the integration
+// returns (would re-read an env-supplied base URL), but the env field is no
+// longer required.
+const HQX_API_BASE_URL: string | undefined = undefined;
 
 // Substrate envelope shape (what hq-x returns under .data, matching DEX's
 // /api/v1/fmcsa/carrier-view/{dot} response).
@@ -254,7 +259,7 @@ export async function getDashboard(dotNumber: string): Promise<DashboardData> {
   const cleanDot = (dotNumber ?? "").replace(/\D/g, "");
   const mockTemplate = getMockDashboard(cleanDot);
 
-  const baseUrl = env.HQX_API_BASE_URL;
+  const baseUrl = HQX_API_BASE_URL;
   if (!baseUrl || !cleanDot) {
     return mockTemplate;
   }
