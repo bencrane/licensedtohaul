@@ -4,6 +4,7 @@ import { Settings as SettingsIcon } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
 import InboxView from "@/components/dashboard/InboxView";
 import { getMockDashboard } from "@/lib/mock-dashboard";
+import { MockSection } from "@/components/MockSection";
 
 type Props = {
   params: Promise<{ dot: string }>;
@@ -54,11 +55,13 @@ export default async function InboxPage({ params }: Props) {
         }
       />
 
-      <section className="flex-1 bg-background">
-        <div className="mx-auto max-w-[1400px] px-6 py-8">
-          <InboxView messages={data.inbox} />
-        </div>
-      </section>
+      <MockSection tooltip="Notifications generator not yet built">
+        <section className="flex-1 bg-background">
+          <div className="mx-auto max-w-[1400px] px-6 py-8">
+            <InboxView messages={data.inbox} />
+          </div>
+        </section>
+      </MockSection>
     </>
   );
 }
