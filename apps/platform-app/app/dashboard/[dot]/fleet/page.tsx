@@ -1,8 +1,10 @@
 import { notFound } from "next/navigation";
 import { Truck, Users, Plus, Download, MapPin } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
-import { getMockDashboard } from "@/lib/mock-dashboard";
+import { getDashboard } from "@/lib/dashboard-fetch";
 import type { PowerUnit, Driver } from "@/lib/mock-dashboard";
+import { MockText } from "@/components/MockText";
+import { MockSection } from "@/components/MockSection";
 
 type Props = {
   params: Promise<{ dot: string }>;
@@ -18,7 +20,7 @@ export default async function FleetPage({ params }: Props) {
   const cleanDot = dot.replace(/\D/g, "");
   if (!cleanDot) notFound();
 
-  const { fleet } = getMockDashboard(cleanDot);
+  const { fleet } = await getDashboard(cleanDot);
   const puDelta = fleet.powerUnitsNow - fleet.powerUnits90dAgo;
   const drDelta = fleet.driversNow - fleet.drivers90dAgo;
   const sign = (n: number) => (n > 0 ? `+${n}` : `${n}`);
@@ -33,11 +35,17 @@ export default async function FleetPage({ params }: Props) {
           <>
             <span className="inline-flex items-center gap-1.5">
               <Truck className="h-3.5 w-3.5 text-stone-400" />
-              {fleet.powerUnitsNow} power units · {sign(puDelta)} vs. 90 days ago
+              {fleet.powerUnitsNow} power units ·{" "}
+              <MockText tooltip="Snapshot history not yet 90d deep">
+                {sign(puDelta)} vs. 90 days ago
+              </MockText>
             </span>
             <span className="inline-flex items-center gap-1.5">
               <Users className="h-3.5 w-3.5 text-stone-400" />
-              {fleet.driversNow} drivers · {sign(drDelta)} vs. 90 days ago
+              {fleet.driversNow} drivers ·{" "}
+              <MockText tooltip="Snapshot history not yet 90d deep">
+                {sign(drDelta)} vs. 90 days ago
+              </MockText>
             </span>
             <span className="inline-flex items-center gap-1.5">
               <MapPin className="h-3.5 w-3.5 text-stone-400" />
@@ -62,65 +70,69 @@ export default async function FleetPage({ params }: Props) {
       <section className="flex-1 bg-background">
         <div className="mx-auto max-w-[1400px] space-y-10 px-6 py-8">
           {/* Power units */}
-          <div>
-            <div className="mb-4 flex items-end justify-between">
-              <h2 className="font-display text-2xl text-stone-900">
-                Power units
-              </h2>
-              <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-stone-500">
-                {fleet.powerUnitsNow} active
-              </span>
+          <MockSection tooltip="Fleet roster not yet wired to real data">
+            <div>
+              <div className="mb-4 flex items-end justify-between">
+                <h2 className="font-display text-2xl text-stone-900">
+                  Power units
+                </h2>
+                <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-stone-500">
+                  {fleet.powerUnitsNow} active
+                </span>
+              </div>
+              <div className="overflow-x-auto border border-line bg-surface">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-line bg-stone-50/60 text-left">
+                      <Th>Unit</Th>
+                      <Th>Year / make / model</Th>
+                      <Th>Class</Th>
+                      <Th>VIN</Th>
+                      <Th>Plate</Th>
+                      <Th align="right">Inspections</Th>
+                      <Th align="right">OOS</Th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {fleet.powerUnitsRoster.map((u) => (
+                      <PowerUnitRow key={u.id} unit={u} />
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
-            <div className="overflow-x-auto border border-line bg-surface">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-line bg-stone-50/60 text-left">
-                    <Th>Unit</Th>
-                    <Th>Year / make / model</Th>
-                    <Th>Class</Th>
-                    <Th>VIN</Th>
-                    <Th>Plate</Th>
-                    <Th align="right">Inspections</Th>
-                    <Th align="right">OOS</Th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {fleet.powerUnitsRoster.map((u) => (
-                    <PowerUnitRow key={u.id} unit={u} />
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+          </MockSection>
 
           {/* Drivers */}
-          <div>
-            <div className="mb-4 flex items-end justify-between">
-              <h2 className="font-display text-2xl text-stone-900">Drivers</h2>
-              <button className="text-sm font-medium text-orange-700 hover:text-orange-800">
-                Refresh all MVRs
-              </button>
+          <MockSection tooltip="Driver roster not yet wired to real data">
+            <div>
+              <div className="mb-4 flex items-end justify-between">
+                <h2 className="font-display text-2xl text-stone-900">Drivers</h2>
+                <button className="text-sm font-medium text-orange-700 hover:text-orange-800">
+                  Refresh all MVRs
+                </button>
+              </div>
+              <div className="overflow-x-auto border border-line bg-surface">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-line bg-stone-50/60 text-left">
+                      <Th>Name</Th>
+                      <Th>CDL</Th>
+                      <Th>Hire date</Th>
+                      <Th>Hazmat</Th>
+                      <Th>MVR last pulled</Th>
+                      <Th align="right">Inspections (24mo)</Th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {fleet.driversRoster.map((d) => (
+                      <DriverRow key={d.id} driver={d} />
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
-            <div className="overflow-x-auto border border-line bg-surface">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-line bg-stone-50/60 text-left">
-                    <Th>Name</Th>
-                    <Th>CDL</Th>
-                    <Th>Hire date</Th>
-                    <Th>Hazmat</Th>
-                    <Th>MVR last pulled</Th>
-                    <Th align="right">Inspections (24mo)</Th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {fleet.driversRoster.map((d) => (
-                    <DriverRow key={d.id} driver={d} />
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+          </MockSection>
 
           {/* Geographic footprint */}
           <div>
