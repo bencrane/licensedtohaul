@@ -3,6 +3,8 @@ import { ArrowRight, ClipboardCheck, FileText } from "lucide-react";
 import PageHeader from "@/components/dashboard/PageHeader";
 import { getMockDashboard } from "@/lib/mock-dashboard";
 import type { HealthStatus, Filing } from "@/lib/mock-dashboard";
+import { MockText } from "@/components/MockText";
+import { MockSection } from "@/components/MockSection";
 
 type Props = {
   params: Promise<{ dot: string }>;
@@ -52,6 +54,7 @@ export default async function CompliancePage({ params }: Props) {
       <section className="flex-1 bg-background">
         <div className="mx-auto max-w-[1400px] space-y-10 px-6 py-8">
           {/* Upcoming deadlines timeline */}
+          <MockSection tooltip="Compliance deadlines not yet wired to real filing calendar">
           <div>
             <div className="mb-4 flex items-end justify-between">
               <h2 className="font-display text-2xl text-stone-900">
@@ -100,6 +103,7 @@ export default async function CompliancePage({ params }: Props) {
               })}
             </ol>
           </div>
+          </MockSection>
 
           {/* Filing tracker grid */}
           <div>
@@ -115,77 +119,91 @@ export default async function CompliancePage({ params }: Props) {
                 detail="Biennial update of carrier registration"
                 status="good"
               />
-              <FilingTile
-                title="IFTA"
-                statusLabel="Q1 due Apr 30"
-                lastFiled={data.compliance.ifta.lastFiled}
-                nextDue={data.compliance.ifta.due}
-                detail={`${data.compliance.ifta.quarter} fuel-tax filing`}
-                status="warn"
-              />
-              <FilingTile
-                title="IRP"
-                statusLabel="Active"
-                lastFiled={`${data.compliance.irp.jurisdictions} jurisdictions`}
-                nextDue={data.compliance.irp.renewalDue}
-                detail="International Registration Plan apportioned plate"
-                status="good"
-              />
-              <FilingTile
-                title="D&A consortium"
-                statusLabel={
-                  data.compliance.daConsortium.status === "enrolled"
-                    ? "Enrolled"
-                    : "Action needed"
-                }
-                lastFiled={`Last query ${data.compliance.daConsortium.lastQuery}`}
-                nextDue={`Enrolled ${data.compliance.daConsortium.enrolledDate}`}
-                detail={data.compliance.daConsortium.name}
-                status={
-                  data.compliance.daConsortium.status === "enrolled" ? "good" : "alert"
-                }
-              />
+              <MockSection tooltip="IFTA filing calendar not yet wired to real data">
+                <FilingTile
+                  title="IFTA"
+                  statusLabel="Q1 due Apr 30"
+                  lastFiled={data.compliance.ifta.lastFiled}
+                  nextDue={data.compliance.ifta.due}
+                  detail={`${data.compliance.ifta.quarter} fuel-tax filing`}
+                  status="warn"
+                />
+              </MockSection>
+              <MockSection tooltip="IRP filing calendar not yet wired to real data">
+                <FilingTile
+                  title="IRP"
+                  statusLabel="Active"
+                  lastFiled={`${data.compliance.irp.jurisdictions} jurisdictions`}
+                  nextDue={data.compliance.irp.renewalDue}
+                  detail="International Registration Plan apportioned plate"
+                  status="good"
+                />
+              </MockSection>
+              <MockSection tooltip="D&A consortium status not yet wired to real data">
+                <FilingTile
+                  title="D&A consortium"
+                  statusLabel={
+                    data.compliance.daConsortium.status === "enrolled"
+                      ? "Enrolled"
+                      : "Action needed"
+                  }
+                  lastFiled={`Last query ${data.compliance.daConsortium.lastQuery}`}
+                  nextDue={`Enrolled ${data.compliance.daConsortium.enrolledDate}`}
+                  detail={data.compliance.daConsortium.name}
+                  status={
+                    data.compliance.daConsortium.status === "enrolled" ? "good" : "alert"
+                  }
+                />
+              </MockSection>
               <FilingTile
                 title="BOC-3"
                 statusLabel="On file"
-                lastFiled={data.compliance.boc3.filedDate ?? "—"}
+                lastFiled={
+                  <MockText tooltip="BOC-3 filed date not yet plumbed from substrate">
+                    {data.compliance.boc3.filedDate ?? "—"}
+                  </MockText>
+                }
                 nextDue="No expiration"
                 detail={data.compliance.boc3.agent ?? "—"}
                 status="good"
               />
-              <FilingTile
-                title="UCR"
-                statusLabel={
-                  data.compliance.ucr.status === "filed"
-                    ? `Filed ${data.compliance.ucr.year}`
-                    : "Pending"
-                }
-                lastFiled={data.compliance.ucr.filedDate ?? "—"}
-                nextDue="Annual renewal"
-                detail="Unified Carrier Registration"
-                status={data.compliance.ucr.status === "filed" ? "good" : "warn"}
-              />
+              <MockSection tooltip="UCR filing calendar not yet wired to real data">
+                <FilingTile
+                  title="UCR"
+                  statusLabel={
+                    data.compliance.ucr.status === "filed"
+                      ? `Filed ${data.compliance.ucr.year}`
+                      : "Pending"
+                  }
+                  lastFiled={data.compliance.ucr.filedDate ?? "—"}
+                  nextDue="Annual renewal"
+                  detail="Unified Carrier Registration"
+                  status={data.compliance.ucr.status === "filed" ? "good" : "warn"}
+                />
+              </MockSection>
             </div>
           </div>
 
           {/* Filing history */}
-          <div>
-            <div className="mb-4 flex items-end justify-between">
-              <h2 className="font-display text-2xl text-stone-900">Recent filings</h2>
-              <button className="text-sm font-medium text-orange-700 hover:text-orange-800">
-                Export CSV
-              </button>
+          <MockSection tooltip="Filing history not yet wired to real filings data">
+            <div>
+              <div className="mb-4 flex items-end justify-between">
+                <h2 className="font-display text-2xl text-stone-900">Recent filings</h2>
+                <button className="text-sm font-medium text-orange-700 hover:text-orange-800">
+                  Export CSV
+                </button>
+              </div>
+              <ul className="border border-line bg-surface">
+                {data.compliance.filings.map((f, i) => (
+                  <FilingRow
+                    key={f.id}
+                    filing={f}
+                    withBorder={i < data.compliance.filings.length - 1}
+                  />
+                ))}
+              </ul>
             </div>
-            <ul className="border border-line bg-surface">
-              {data.compliance.filings.map((f, i) => (
-                <FilingRow
-                  key={f.id}
-                  filing={f}
-                  withBorder={i < data.compliance.filings.length - 1}
-                />
-              ))}
-            </ul>
-          </div>
+          </MockSection>
         </div>
       </section>
     </>
@@ -201,10 +219,10 @@ function FilingTile({
   status,
 }: {
   title: string;
-  statusLabel: string;
-  lastFiled: string;
-  nextDue: string;
-  detail: string;
+  statusLabel: React.ReactNode;
+  lastFiled: React.ReactNode;
+  nextDue: React.ReactNode;
+  detail: React.ReactNode;
   status: HealthStatus;
 }) {
   const s = STATUS_STYLES[status];
