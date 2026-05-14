@@ -102,8 +102,8 @@ export default function ConsentModal({
               Clicking <span className="font-semibold">Confirm</span> shares the
               following data fields from your USDOT profile with{" "}
               <span className="font-semibold">{partnerName}</span>. They will use
-              it to finalize your quote and initiate the onboarding process
-              off-platform.
+              it to finalize your quote and start onboarding in your deal room
+              on this platform.
             </p>
           </div>
 
@@ -125,10 +125,10 @@ export default function ConsentModal({
           </div>
 
           <p className="text-xs text-stone-500 leading-relaxed">
-            Licensed to Haul is an orchestration platform only. We do not handle
-            agreement signing, Notice of Assignment, banking details, or invoice
-            funding. Those steps happen directly with {partnerName} after this
-            introduction.
+            Licensed to Haul hosts the NOA signing, onboarding, and
+            disbursement flow with {partnerName} in your deal room on this
+            platform. You&apos;ll see status updates, sign documents, and
+            track payments here.
           </p>
         </div>
 
