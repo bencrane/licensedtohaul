@@ -5,7 +5,6 @@ import PageHeader from "@/components/dashboard/PageHeader";
 import FinancingClientSection from "@/components/dashboard/FinancingClientSection";
 import { getMockOpportunities } from "@/lib/mock-opportunities";
 import { getActiveFactorOfRecord } from "@/lib/factor-of-record/queries";
-<<<<<<< HEAD
 import { getOpenSubmissionsForCarrier } from "@/lib/quote-submissions/queries";
 import { getFactorDisplayName } from "@/lib/factor-of-record/types";
 import type { QuoteSubmission } from "@/lib/quote-submissions/types";
