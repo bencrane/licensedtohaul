@@ -41,7 +41,7 @@ export default async function SettingsPage({ params }: Props) {
         <div className="mx-auto max-w-[1400px] space-y-12 px-6 py-8">
             {/* Account */}
             <Section id="account" title="Account">
-              <div className="grid gap-px border border-line bg-line md:grid-cols-2">
+              <div className="grid gap-px border border-line bg-line lg:grid-cols-2">
                 <Field label="Legal name" value={carrier.legalName} />
                 {carrier.dba && <Field label="DBA" value={carrier.dba} />}
                 <Field label="USDOT" value={carrier.dotNumber} mono />
@@ -135,8 +135,8 @@ export default async function SettingsPage({ params }: Props) {
                   actionLabel="Request export"
                 />
                 <div className="border border-line bg-surface">
-                  <div className="flex items-start gap-3 p-5 md:flex-row md:items-center md:justify-between">
-                    <div className="flex items-start gap-3 md:items-center">
+                  <div className="flex items-start gap-3 p-5 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="flex items-start gap-3 lg:items-center">
                       <span className="inline-flex h-8 w-8 flex-none items-center justify-center border border-line bg-stone-50">
                         <ExternalLink className="h-4 w-4 text-stone-600" />
                       </span>
@@ -268,11 +268,11 @@ function ActionCard({
 }) {
   return (
     <div
-      className={`flex flex-col gap-3 border bg-surface p-5 md:flex-row md:items-center md:justify-between ${
+      className={`flex flex-col gap-3 border bg-surface p-5 lg:flex-row lg:items-center lg:justify-between ${
         destructive ? "border-red-200" : "border-line"
       }`}
     >
-      <div className="flex items-start gap-3 md:items-center">
+      <div className="flex items-start gap-3 lg:items-center">
         <span className="inline-flex h-8 w-8 flex-none items-center justify-center border border-line bg-stone-50">
           {icon}
         </span>
@@ -289,7 +289,7 @@ function ActionCard({
       </div>
       <button
         type="button"
-        className={`whitespace-nowrap border px-3 py-2 text-sm font-medium transition-colors md:flex-shrink-0 ${
+        className={`whitespace-nowrap border px-3 py-2 text-sm font-medium transition-colors lg:flex-shrink-0 ${
           destructive
             ? "border-red-300 bg-white text-red-700 hover:bg-red-50"
             : "border-line-strong bg-white text-stone-800 hover:border-orange-400 hover:text-orange-700"

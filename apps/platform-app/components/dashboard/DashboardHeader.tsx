@@ -14,7 +14,7 @@ export default function DashboardHeader({ carrierName, dotNumber }: Props) {
         <div className="flex items-center gap-6">
           <Wordmark />
           <div className="hidden h-6 w-px bg-line md:block" />
-          <div className="hidden md:flex md:items-baseline md:gap-2">
+          <div className="hidden md:flex md:items-baseline lg:gap-2">
             <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-500">
               Dashboard
             </span>

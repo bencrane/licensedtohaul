@@ -22,8 +22,8 @@ export default function NotificationPreferenceRow({
   const [cadence, setCadence] = useState<NotificationCadence>(preference.cadence);
 
   return (
-    <div className="grid gap-4 border-b border-line py-5 last:border-b-0 md:grid-cols-12 md:gap-6">
-      <div className="md:col-span-4">
+    <div className="grid gap-4 border-b border-line py-5 last:border-b-0 lg:grid-cols-12 lg:gap-6">
+      <div className="lg:col-span-4">
         <p className="font-display text-base text-stone-900">
           {preference.label}
         </p>
@@ -31,7 +31,7 @@ export default function NotificationPreferenceRow({
           {preference.description}
         </p>
       </div>
-      <div className="md:col-span-8">
+      <div className="lg:col-span-8">
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
           {CADENCE_OPTIONS.map((opt) => {
             const active = cadence === opt.value;

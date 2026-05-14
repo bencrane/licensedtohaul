@@ -135,8 +135,8 @@ function LaneCard({ lane }: { lane: LaneOpportunity }) {
   const tierClass = TIER_STYLES[lane.brokerCreditTier];
   return (
     <li className="border border-line bg-surface">
-      <div className="grid gap-px bg-line md:grid-cols-12">
-        <div className="bg-surface p-5 md:col-span-4">
+      <div className="grid gap-px bg-line lg:grid-cols-12">
+        <div className="bg-surface p-5 lg:col-span-4">
           <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-stone-500">
             {lane.postedRelative}
           </p>
@@ -151,7 +151,7 @@ function LaneCard({ lane }: { lane: LaneOpportunity }) {
           </p>
         </div>
 
-        <div className="bg-surface p-5 md:col-span-4">
+        <div className="bg-surface p-5 lg:col-span-4">
           <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
             Load detail
           </p>
@@ -178,7 +178,7 @@ function LaneCard({ lane }: { lane: LaneOpportunity }) {
           </dl>
         </div>
 
-        <div className="bg-surface p-5 md:col-span-4">
+        <div className="bg-surface p-5 lg:col-span-4">
           <div className="flex items-center justify-between">
             <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
               Broker

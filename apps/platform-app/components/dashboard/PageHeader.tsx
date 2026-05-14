@@ -16,7 +16,7 @@ export default function PageHeader({
   return (
     <section className="border-b border-line bg-white">
       <div className="mx-auto max-w-[1400px] px-6 py-5">
-        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0">
             <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">
               {eyebrow}
@@ -36,7 +36,7 @@ export default function PageHeader({
             )}
           </div>
           {actions && (
-            <div className="flex flex-wrap gap-2 md:flex-shrink-0">{actions}</div>
+            <div className="flex flex-wrap gap-2 lg:flex-shrink-0">{actions}</div>
           )}
         </div>
       </div>

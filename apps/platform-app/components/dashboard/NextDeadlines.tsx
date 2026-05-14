@@ -46,7 +46,7 @@ export default function NextDeadlines({
           <ArrowUpRight className="h-3.5 w-3.5 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
         </Link>
       </div>
-      <ul className="grid gap-px border border-line bg-line md:grid-cols-2">
+      <ul className="grid gap-px border border-line bg-line lg:grid-cols-2">
         {top.map((d) => {
           const s = STATUS_STYLES[d.status];
           return (

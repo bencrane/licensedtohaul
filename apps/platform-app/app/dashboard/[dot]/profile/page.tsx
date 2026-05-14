@@ -240,11 +240,11 @@ function Row({
   copy?: boolean;
 }) {
   return (
-    <div className="grid grid-cols-1 gap-1 border-b border-line py-3 last:border-b-0 md:grid-cols-12 md:items-center md:gap-4">
-      <p className="md:col-span-4 text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+    <div className="grid grid-cols-1 gap-1 border-b border-line py-3 last:border-b-0 lg:grid-cols-12 lg:items-center lg:gap-4">
+      <p className="lg:col-span-4 text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-500">
         {label}
       </p>
-      <div className="md:col-span-8 flex items-center justify-between gap-3">
+      <div className="lg:col-span-8 flex items-center justify-between gap-3">
         <div className={mono ? "font-mono text-sm text-stone-900" : "text-sm text-stone-800"}>
           {value}
         </div>

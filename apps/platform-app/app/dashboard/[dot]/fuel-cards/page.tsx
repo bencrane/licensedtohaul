@@ -50,8 +50,8 @@ export default async function FuelCardsPage({ params }: Props) {
         <div className="mx-auto max-w-[1400px] space-y-10 px-6 py-8">
           {/* Best-savings highlight */}
           <div className="border border-emerald-200 bg-emerald-50/50">
-            <div className="grid gap-px bg-emerald-200/60 md:grid-cols-12">
-              <div className="bg-emerald-50/40 p-6 md:col-span-8">
+            <div className="grid gap-px bg-emerald-200/60 lg:grid-cols-12">
+              <div className="bg-emerald-50/40 p-6 lg:col-span-8">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-emerald-800">
                   Highest projected annual savings
                 </p>
@@ -60,7 +60,7 @@ export default async function FuelCardsPage({ params }: Props) {
                 </h2>
                 <p className="mt-2 text-sm text-stone-700">{best.network}</p>
               </div>
-              <div className="bg-emerald-50/40 p-6 md:col-span-4">
+              <div className="bg-emerald-50/40 p-6 lg:col-span-4">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-emerald-800">
                   Estimated annual savings
                 </p>
@@ -84,7 +84,7 @@ export default async function FuelCardsPage({ params }: Props) {
                 Sorted by est. annual savings
               </span>
             </div>
-            <ul className="grid gap-px border border-line bg-line md:grid-cols-2">
+            <ul className="grid gap-px border border-line bg-line lg:grid-cols-2">
               {sorted.map((p) => (
                 <ProgramCard key={p.id} program={p} isBest={p.id === best.id} />
               ))}

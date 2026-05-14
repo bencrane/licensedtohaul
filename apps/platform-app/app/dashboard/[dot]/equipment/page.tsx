@@ -134,7 +134,7 @@ export default async function EquipmentPage({ params }: Props) {
                 <button className="px-2.5 py-1 hover:text-stone-700">Refinance</button>
               </div>
             </div>
-            <ul className="grid gap-px border border-line bg-line md:grid-cols-2">
+            <ul className="grid gap-px border border-line bg-line lg:grid-cols-2">
               {equipment.availableOffers.map((o) => (
                 <OfferCard key={o.id} offer={o} />
               ))}

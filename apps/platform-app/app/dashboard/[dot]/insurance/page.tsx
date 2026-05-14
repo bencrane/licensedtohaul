@@ -71,14 +71,14 @@ export default async function InsurancePage({ params }: Props) {
       <section className="flex-1 bg-background">
         <div className="mx-auto max-w-[1400px] space-y-10 px-6 py-8">
           {/* Current policy + savings summary */}
-          <div className="grid gap-6 md:grid-cols-12">
-            <section className="border border-line bg-surface md:col-span-7">
+          <div className="grid gap-6 lg:grid-cols-12">
+            <section className="border border-line bg-surface lg:col-span-7">
               <header className="border-b border-line px-5 py-3">
                 <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-500">
                   Current policy
                 </h2>
               </header>
-              <div className="grid gap-px bg-line md:grid-cols-2">
+              <div className="grid gap-px bg-line lg:grid-cols-2">
                 <Cell label="Insurer" value={insurance.insurer} />
                 <Cell label="Policy number" value={insurance.policyNumber} mono />
                 <Cell label="BIPD limit" value={insurance.bipdLimit} mono />
@@ -92,7 +92,7 @@ export default async function InsurancePage({ params }: Props) {
             </section>
 
             {cheapest && savings > 0 && (
-              <section className="border border-emerald-200 bg-emerald-50/50 md:col-span-5">
+              <section className="border border-emerald-200 bg-emerald-50/50 lg:col-span-5">
                 <div className="p-6">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-emerald-800">
                     Best quote so far

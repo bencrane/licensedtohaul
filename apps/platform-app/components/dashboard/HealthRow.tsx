@@ -69,7 +69,7 @@ export default function HealthRow({
   return (
     <section className="border-b border-line bg-stone-100">
       <div className="mx-auto max-w-[1400px] px-6 py-5">
-        <div className="grid gap-px overflow-hidden border border-line bg-line sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-px overflow-hidden border border-line bg-line sm:grid-cols-2 xl:grid-cols-4">
           <HealthTile
             label="MCS-150"
             icon={<FileText className="h-4 w-4" />}

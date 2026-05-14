@@ -154,7 +154,7 @@ export default function FinancingClientSection({
             {factoringQuotes.length} {factoringQuotes.length === 1 ? "quote" : "quotes"}
           </span>
         </div>
-        <ul className="grid gap-px border border-line bg-line md:grid-cols-2">
+        <ul className="grid gap-px border border-line bg-line lg:grid-cols-2">
           {factoringQuotes.map((q) => (
             <FinancingCard
               key={q.id}
@@ -176,7 +176,7 @@ export default function FinancingClientSection({
               Fuel advances · working capital
             </span>
           </div>
-          <ul className="grid gap-px border border-line bg-line md:grid-cols-2">
+          <ul className="grid gap-px border border-line bg-line lg:grid-cols-2">
             {otherQuotes.map((q) => (
               <FinancingCard
                 key={q.id}
