@@ -64,7 +64,7 @@ export function topPercent(percentile: number): number {
 
 /** Pretty: 11.1 → "0.53× the industry average" for vehicle OOS. */
 export function ratioToAverage(oosRate: number): number {
-  const average = 21;
+  const average: number = 21;
   if (average === 0) return 1;
   return Math.round((oosRate / average) * 100) / 100;
 }
