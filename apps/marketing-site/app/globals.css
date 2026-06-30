@@ -70,6 +70,16 @@
     background-color: var(--color-orange-500);
     color: #fff;
   }
+
+  /* Keyboard focus ring — visible on cream and orange surfaces alike.
+     Scoped to links/buttons; form fields carry their own focus styles. */
+  a:focus-visible,
+  button:focus-visible,
+  [role="button"]:focus-visible,
+  summary:focus-visible {
+    outline: 2px solid var(--color-orange-600);
+    outline-offset: 2px;
+  }
 }
 
 @layer utilities {
