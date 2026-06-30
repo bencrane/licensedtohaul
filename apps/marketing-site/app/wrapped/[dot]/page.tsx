@@ -61,6 +61,7 @@ export default async function WrappedRevealPage({ params }: Props) {
         tone="cream"
         eyebrow="USDOT · wrapped"
         number={cleanDot}
+        headingLevel={1}
         headline={
           <>
             <span className="block text-stone-500">{data.legalName}.</span>
