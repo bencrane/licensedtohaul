@@ -105,7 +105,7 @@ export default function ResourcesPage() {
                     <p className="mt-3 text-[15px] leading-relaxed text-stone-700">
                       {r.blurb}
                     </p>
-                    <p className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-orange-700">
+                    <p className="mt-4 text-xs font-medium uppercase tracking-[0.14em] text-stone-600">
                       Full write-up coming soon
                     </p>
                   </div>

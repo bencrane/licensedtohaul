@@ -20,6 +20,7 @@ export default function WrappedCard({
   number,
   numberUnit,
   headline,
+  headingLevel = 2,
   body,
   footer,
 }: {
@@ -28,9 +29,12 @@ export default function WrappedCard({
   number?: string;
   numberUnit?: string;
   headline: React.ReactNode;
+  headingLevel?: 1 | 2;
   body?: React.ReactNode;
   footer?: React.ReactNode;
 }) {
+  const Heading = headingLevel === 1 ? "h1" : "h2";
+
   return (
     <section
       className={`relative flex min-h-[100svh] snap-start flex-col justify-center overflow-hidden px-6 py-20 ${TONE_CLASS[tone]}`}
@@ -56,9 +60,9 @@ export default function WrappedCard({
           </p>
         )}
 
-        <div className="font-display mt-8 text-3xl leading-tight text-balance sm:text-4xl lg:text-5xl">
+        <Heading className="font-display mt-8 text-3xl leading-tight text-balance sm:text-4xl lg:text-5xl">
           {headline}
-        </div>
+        </Heading>
 
         {body && (
           <div className="mt-6 max-w-2xl text-lg leading-relaxed opacity-85 sm:text-xl">

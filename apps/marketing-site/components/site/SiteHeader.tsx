@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Wordmark from "./Wordmark";
+import MobileNav from "./MobileNav";
 
 const navItems = [
   { href: "/opportunities", label: "Opportunities" },
@@ -25,6 +26,8 @@ export default function SiteHeader() {
             </Link>
           ))}
         </nav>
+
+        <MobileNav items={navItems} />
       </div>
     </header>
   );
