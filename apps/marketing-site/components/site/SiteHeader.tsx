@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
 import Wordmark from "./Wordmark";
 
 const navItems = [
@@ -26,14 +25,6 @@ export default function SiteHeader() {
             </Link>
           ))}
         </nav>
-
-        <Link
-          href="/claim"
-          className="group inline-flex items-center gap-1.5 bg-orange-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-orange-700"
-        >
-          Claim Your Authority
-          <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-        </Link>
       </div>
     </header>
   );
